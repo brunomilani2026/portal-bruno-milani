@@ -4,11 +4,14 @@ import {
   buscas,
   carregarAulas,
   chaveAluno,
+  diasAte,
   diasDesde,
   idYoutube,
   linkSeguro,
   nomeDoLink,
+  rotuloAula,
   rotuloTipo,
+  textoPrazo,
   tipoValido,
   type Anotacao,
 } from "@/lib/aulas";
@@ -161,7 +164,7 @@ function Cartao({ a, ativo, voltar }: { a: Anotacao; ativo: boolean; voltar: str
   );
 }
 
-function agrupar(lista: Anotacao[]): [string, Anotacao[]][] {
+function agrupar(lista: Anotacao[], proximas: Record<string, string> = {}): [string, Anotacao[]][] {
   const mapa = new Map<string, Anotacao[]>();
   for (const a of lista) {
     const k = chaveAluno(a.aluno) || a.aluno;
@@ -169,7 +172,14 @@ function agrupar(lista: Anotacao[]): [string, Anotacao[]][] {
   }
   return Array.from(mapa.values())
     .map((itens): [string, Anotacao[]] => [itens[0].aluno, itens])
-    .sort((x, y) => x[0].localeCompare(y[0], "pt-BR"));
+    .sort((x, y) => {
+      const ax = proximas[chaveAluno(x[0])] ?? "";
+      const ay = proximas[chaveAluno(y[0])] ?? "";
+      if (ax && ay) return ax < ay ? -1 : ax > ay ? 1 : 0;
+      if (ax) return -1;
+      if (ay) return 1;
+      return x[0].localeCompare(y[0], "pt-BR");
+    });
 }
 
 export default async function AulasPage({ searchParams }: { searchParams: Promise<{ aluno?: string; tipo?: string; q?: string; erro?: string }> }) {
@@ -194,6 +204,10 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
     .filter((a) => a.status === "pendente")
     .sort((a, b) => (a.prioridade === b.prioridade ? (a.criadoEm < b.criadoEm ? -1 : 1) : a.prioridade === "alta" ? -1 : 1));
   const feitas = visiveis.filter((a) => a.status === "feito").sort((a, b) => ((a.feitoEm || a.atualizadoEm) < (b.feitoEm || b.atualizadoEm) ? 1 : -1));
+
+  const preparar = agrupar(todasPendentes, dados.proximas)
+    .map(([nome, itens]): [string, Anotacao[], string] => [nome, itens, dados.proximas[chaveAluno(nome)] ?? ""])
+    .filter(([, , iso]) => iso && diasAte(iso) >= 0 && diasAte(iso) <= 7);
 
   const antigas = todasPendentes.filter((a) => diasDesde(a.criadoEm) > DIAS_ANTIGO).length;
   const altas = todasPendentes.filter((a) => a.prioridade === "alta").length;
@@ -240,6 +254,22 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                 <span>parados há +{DIAS_ANTIGO} dias</span>
               </div>
             </div>
+
+            {preparar.length > 0 && (
+              <section className="preparar" aria-label="Preparar para as próximas aulas">
+                <h2 className="subtitulo">🎯 Deixar pronto para as próximas aulas</h2>
+                <ul>
+                  {preparar.map(([nome, itens, iso]) => (
+                    <li key={nome}>
+                      <Link href={href({ aluno: nome })}>
+                        <strong>{nome}</strong>
+                      </Link>{" "}
+                      — {rotuloAula(iso)} <span className="prazo-aula">({textoPrazo(diasAte(iso))})</span>: {itens.map((i) => i.assunto).join(" · ")}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <form action={criarAnotacao} className="form-aula caixa-form">
               <input type="hidden" name="voltar" value={voltar} />
@@ -321,10 +351,17 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                   <p className="item-meta">Use a anotação rápida acima: “Aluno – música”.</p>
                 </div>
               ) : (
-                agrupar(pendentes).map(([nome, itens]) => (
+                agrupar(pendentes, dados.proximas).map(([nome, itens]) => {
+                  const iso = dados.proximas[chaveAluno(nome)];
+                  return (
                   <details key={nome} className="resolvidos grupo" open>
                     <summary>
                       {nome} ({itens.length})
+                      {iso && (
+                        <span className={`proxima ${diasAte(iso) <= 2 ? "proxima-perto" : ""}`}>
+                          📅 próxima aula {rotuloAula(iso)} · {textoPrazo(diasAte(iso))}
+                        </span>
+                      )}
                     </summary>
                     <ul className="lista-itens">
                       {itens.map((a) => (
@@ -332,7 +369,8 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                       ))}
                     </ul>
                   </details>
-                ))
+                  );
+                })
               )}
             </section>
 
