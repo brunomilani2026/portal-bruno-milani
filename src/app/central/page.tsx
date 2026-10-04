@@ -92,6 +92,7 @@ export default async function CentralPage() {
   const resto = dia.itens.slice(5);
 
   return (
+    <div className="tela-neutra">
     <main className="pagina">
       <p className="voltar">
         <Link href="/">← Meus sistemas</Link>
@@ -190,5 +191,6 @@ export default async function CentralPage() {
         </>
       )}
     </main>
+    </div>
   );
 }

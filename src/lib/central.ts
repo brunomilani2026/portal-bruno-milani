@@ -83,6 +83,24 @@ export async function carregarMeuDia(): Promise<MeuDia> {
     aguardando: [],
     concluidosHoje: 0,
   };
+  if (!temTokenLeitura() && process.env.NODE_ENV !== "production") {
+    // só em desenvolvimento: exemplo para conferir o visual sem o Make
+    const ex = (key: string, titulo: string, detalhe: string, score: number, area: string, extra: Partial<ItemCentral> = {}): ItemCentral => ({
+      key, titulo, detalhe, area, origem: "app", prazo: "", valor: 0, score, porque: "exemplo", href: "", quem: "", ultimoContato: "", lembrarEm: "", anotacao: false, ...extra,
+    });
+    return {
+      ...base,
+      ok: true,
+      atualizadoEm: new Date().toISOString(),
+      itens: [
+        ex("a", "Cobrar Pipo", "Mensalidade R$ 450,00 venceu 16/09 (18 dias)", 74, "aulas"),
+        ex("b", "Pagar IPTU", "R$ 238,70 · vence amanhã", 52, "financeiro"),
+        ex("c", "Saldo baixo: Conta Next", "R$ 840,36 (mínimo R$ 2.000,00)", 30, "financeiro"),
+        ex("d", "Me lembrar de gravar uma música", "", 12, "pessoal", { anotacao: true }),
+      ],
+      aguardando: [ex("e", "Reembolso", "Aguardando formulário", 24, "financeiro", { quem: "MuseScore", ultimoContato: "2026-10-01", lembrarEm: "2026-10-05" })],
+    };
+  }
   if (!temTokenLeitura()) return { ...base, erro: "A página ainda não está conectada ao Make (falta cadastrar a chave na Vercel)." };
 
   let tarefas: RegistroMake[];

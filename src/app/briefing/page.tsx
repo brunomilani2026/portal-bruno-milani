@@ -8,6 +8,7 @@ export default async function BriefingPage({ searchParams }: { searchParams: Pro
   const resultado = await listarBriefings();
 
   return (
+    <div className="tela-neutra">
     <main className="pagina">
       <p className="voltar">
         <Link href="/">← Meus sistemas</Link>
@@ -64,5 +65,6 @@ export default async function BriefingPage({ searchParams }: { searchParams: Pro
         );
       })()}
     </main>
+    </div>
   );
 }
