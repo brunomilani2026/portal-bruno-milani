@@ -74,12 +74,26 @@ export async function listarRegistros(storeId: string): Promise<RegistroMake[]> 
   return todos;
 }
 
-/** Cria ou substitui o registro (PUT). */
+/**
+ * Cria ou substitui o registro. Tenta substituir (PUT); se o registro ainda não existir,
+ * cria (POST); se a criação falhar por já existir, substitui de novo.
+ */
 export async function gravarRegistro(storeId: string, key: string, data: Record<string, unknown>): Promise<void> {
-  await chamar(`/data-stores/${storeId}/data/${encodeURIComponent(key)}`, process.env.MAKE_API_TOKEN_WRITE, {
-    method: "PUT",
-    body: JSON.stringify({ data }),
-  });
+  const token = process.env.MAKE_API_TOKEN_WRITE;
+  const put = () =>
+    chamar(`/data-stores/${storeId}/data/${encodeURIComponent(key)}`, token, { method: "PUT", body: JSON.stringify({ data }) });
+  const post = () => chamar(`/data-stores/${storeId}/data`, token, { method: "POST", body: JSON.stringify({ key, data }) });
+
+  try {
+    await put();
+  } catch (e) {
+    if (!(e instanceof MakeErro) || e.tipo !== "http") throw e;
+    try {
+      await post();
+    } catch {
+      await put();
+    }
+  }
 }
 
 export async function criarRegistro(storeId: string, key: string, data: Record<string, unknown>): Promise<void> {
