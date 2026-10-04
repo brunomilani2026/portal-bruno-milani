@@ -308,3 +308,164 @@ a.cartao:focus-visible {
   color: var(--rosa);
 }
 
+
+/* Meu Dia */
+.contadores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 640px) {
+  .contadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.contador {
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.contador span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.contador strong {
+  font-family: var(--fonte-titulo), Georgia, serif;
+  font-weight: 400;
+  font-size: 1.8rem;
+}
+
+.captura {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.captura input {
+  flex: 1 1 220px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--borda);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--branco);
+  font: inherit;
+}
+
+.captura input[type="date"] {
+  flex: 0 0 auto;
+  color-scheme: dark;
+}
+
+.lista-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.item {
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.item-critico {
+  border-color: #ff8fa6;
+  background: rgba(255, 90, 120, 0.12);
+}
+
+.item-importante {
+  border-color: #f0b46a;
+  background: rgba(240, 180, 106, 0.1);
+}
+
+.item-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.item-titulo {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.item-detalhe {
+  margin: 4px 0 0;
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.item-meta {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+  opacity: 0.85;
+}
+
+.chip-area {
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: rgba(255, 255, 255, 0.14);
+  white-space: nowrap;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.acoes form {
+  margin: 0;
+}
+
+.btn-acao {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--branco);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.btn-acao:hover:not(:disabled) {
+  border-color: var(--rosa);
+}
+
+.btn-acao.principal {
+  background: var(--rosa);
+  border-color: var(--rosa);
+  color: var(--vinho-escuro);
+  font-weight: 700;
+}
+
+.btn-acao:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.link-origem {
+  font-size: 0.88rem;
+  color: var(--rosa);
+}

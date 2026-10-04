@@ -17,6 +17,14 @@ export type SistemaApp = {
 export function listarSistemas(): SistemaApp[] {
   return [
     {
+      id: "meu-dia",
+      nome: "Meu Dia",
+      descricao: "O que exige atenção hoje, pendências e o que você está esperando.",
+      icone: "🎯",
+      href: "/central",
+      situacao: "ativo",
+    },
+    {
       id: "financas",
       nome: "Finanças",
       descricao: "Contas, shows, alunos, Hotmart e despesas.",
