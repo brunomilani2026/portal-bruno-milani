@@ -75,7 +75,7 @@ function Linha({ item, pos, ativo }: { item: ItemCentral; pos?: number; ativo: b
           <p className="item-meta">
             {NIVEL_ROTULO[nivel]} · nota {item.score}
             {item.porque && ` — ${item.porque}`}
-            {item.valor > 0 && ` · ${brl.format(item.valor)}`}
+            {item.valor > 0 && !item.detalhe.includes("R$") && !item.porque.includes("R$") && ` · ${brl.format(item.valor)}`}
           </p>
         </div>
         <span className="chip-area">{item.anotacao ? "anotação" : item.area}</span>
