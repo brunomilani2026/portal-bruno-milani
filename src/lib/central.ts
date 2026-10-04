@@ -206,6 +206,11 @@ export async function carregarMeuDia(): Promise<MeuDia> {
     item.score = limitar(item.scoreBase + item.ajuste);
 
     if (tipo === "agenda") {
+      // tolerância: o assistente às vezes grava a data em `prazo` e a hora dentro do `detalhe` ("Aula · 11:00")
+      if (!item.data) item.data = item.prazo;
+      const horaNoDetalhe = item.detalhe.match(/(\d{1,2}):(\d{2})/);
+      if (!item.hora && horaNoDetalhe) item.hora = `${horaNoDetalhe[1].padStart(2, "0")}:${horaNoDetalhe[2]}`;
+      item.detalhe = item.detalhe.replace(/\s*[·\-—]?\s*\d{1,2}:\d{2}\s*$/, "").trim();
       if (item.data === hoje || item.data === amanha) agenda.push(item);
       continue;
     }
