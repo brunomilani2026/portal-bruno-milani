@@ -1,5 +1,14 @@
 import { listarRegistros, STORES, temTokenEscrita, temTokenLeitura } from "./make";
 
+export const TIPOS = [
+  { valor: "musica", rotulo: "🎵 Música" },
+  { valor: "tecnica", rotulo: "🎸 Técnica" },
+  { valor: "teoria", rotulo: "📖 Teoria" },
+  { valor: "apresentacao", rotulo: "🎤 Apresentação" },
+] as const;
+
+export type Tipo = (typeof TIPOS)[number]["valor"];
+
 export type Anotacao = {
   id: string;
   aluno: string;
@@ -7,6 +16,11 @@ export type Anotacao = {
   observacoes: string;
   link: string;
   status: "pendente" | "feito";
+  tipo: Tipo;
+  tom: string;
+  prioridade: "normal" | "alta";
+  feitoEm: string;
+  posAula: string;
   criadoEm: string;
   atualizadoEm: string;
 };
@@ -21,6 +35,14 @@ export type DadosAulas = {
 };
 
 const txt = (v: unknown): string => (typeof v === "string" ? v : v == null ? "" : String(v));
+
+export function tipoValido(v: string): Tipo {
+  return TIPOS.some((t) => t.valor === v) ? (v as Tipo) : "musica";
+}
+
+export function rotuloTipo(t: Tipo): string {
+  return TIPOS.find((x) => x.valor === t)?.rotulo ?? "🎵 Música";
+}
 
 /** Só aceita endereços http(s); qualquer outra coisa vira vazio. */
 export function linkSeguro(bruto: string): string {
@@ -43,6 +65,36 @@ export function nomeDoLink(link: string): string {
   }
 }
 
+/** Devolve o id do vídeo quando o link é do YouTube (para mostrar a miniatura). */
+export function idYoutube(link: string): string {
+  try {
+    const u = new URL(link);
+    const h = u.hostname.replace(/^www\./, "").replace(/^m\./, "");
+    let id = "";
+    if (h === "youtu.be") id = u.pathname.slice(1).split("/")[0] ?? "";
+    else if (h === "youtube.com" || h === "music.youtube.com") {
+      id = u.searchParams.get("v") ?? "";
+      if (!id) {
+        const m = u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{11})/);
+        id = m?.[1] ?? "";
+      }
+    }
+    return /^[\w-]{11}$/.test(id) ? id : "";
+  } catch {
+    return "";
+  }
+}
+
+/** Atalhos de busca prontos para a música/assunto (abrem em nova aba). */
+export function buscas(assunto: string): { rotulo: string; href: string }[] {
+  const q = encodeURIComponent(assunto);
+  return [
+    { rotulo: "▶ YouTube", href: `https://www.youtube.com/results?search_query=${q}` },
+    { rotulo: "🎸 Cifra", href: `https://www.cifraclub.com.br/?q=${q}` },
+    { rotulo: "🎼 Partitura", href: `https://www.google.com/search?q=${encodeURIComponent(`${assunto} partitura`)}` },
+  ];
+}
+
 /** Primeiro nome em minúsculas e sem acento/número, para casar "Julio 16" com "Julio". */
 export function chaveAluno(nome: string): string {
   return nome
@@ -52,6 +104,22 @@ export function chaveAluno(nome: string): string {
     .replace(/[^a-z\s]/g, " ")
     .trim()
     .split(/\s+/)[0] ?? "";
+}
+
+/** Entrada rápida: "Iuri – Amor de Verão" vira aluno + assunto. */
+export function separarRapido(bruto: string): { aluno: string; assunto: string } | null {
+  const t = bruto.trim();
+  const m = t.match(/^(.+?)\s*(?:\s[-–—]\s|:)\s*(.+)$/);
+  if (!m) return null;
+  const aluno = m[1].trim();
+  const assunto = m[2].trim();
+  return aluno && assunto ? { aluno, assunto } : null;
+}
+
+export function diasDesde(iso: string, agora = new Date()): number {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 0;
+  return Math.max(0, Math.floor((agora.getTime() - d.getTime()) / 86_400_000));
 }
 
 export async function listarAnotacoes(): Promise<Anotacao[]> {
@@ -67,6 +135,11 @@ export async function listarAnotacoes(): Promise<Anotacao[]> {
         observacoes: txt(d.observacoes),
         link: txt(d.link),
         status: txt(d.status) === "feito" ? "feito" : "pendente",
+        tipo: tipoValido(txt(d.tipo)),
+        tom: txt(d.tom),
+        prioridade: txt(d.prioridade) === "alta" ? "alta" : "normal",
+        feitoEm: txt(d.feito_em),
+        posAula: txt(d.pos_aula),
         criadoEm: txt(d.criado_em),
         atualizadoEm: txt(d.atualizado_em),
       };
@@ -78,21 +151,17 @@ export async function carregarAulas(): Promise<DadosAulas> {
   const base: DadosAulas = { ok: false, podeEscrever: temTokenEscrita(), anotacoes: [], alunos: [] };
 
   if (!temTokenLeitura() && process.env.NODE_ENV !== "production") {
+    const ex = (o: Partial<Anotacao> & Pick<Anotacao, "id" | "aluno" | "assunto" | "criadoEm">): Anotacao => ({
+      observacoes: "", link: "", status: "pendente", tipo: "musica", tom: "", prioridade: "normal", feitoEm: "", posAula: "", atualizadoEm: "", ...o,
+    });
     return {
       ...base,
       ok: true,
       alunos: ["Jayden", "Julio", "Marcelo", "Paula", "Pipo"],
       anotacoes: [
-        {
-          id: "ex1", aluno: "Jayden", assunto: "Samba de Roda — Trem das Onze", observacoes: "Quer aprender a introdução e o ritmo da levada.",
-          link: "https://www.youtube.com/watch?v=exemplo", status: "pendente", criadoEm: "2026-10-04T12:00:00-03:00", atualizadoEm: "",
-        },
-        {
-          id: "ex2", aluno: "Julio", assunto: "Escala menor harmônica", observacoes: "", link: "", status: "pendente", criadoEm: "2026-10-03T12:00:00-03:00", atualizadoEm: "",
-        },
-        {
-          id: "ex3", aluno: "Paula", assunto: "Cifra de Detalhes", observacoes: "Enviei por e-mail", link: "", status: "feito", criadoEm: "2026-10-01T12:00:00-03:00", atualizadoEm: "",
-        },
+        ex({ id: "ex1", aluno: "Jayden", assunto: "Samba de Roda — Trem das Onze", observacoes: "Quer aprender a introdução e o ritmo da levada.", link: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", tom: "Dó maior", prioridade: "alta", criadoEm: "2026-10-04T12:00:00-03:00" }),
+        ex({ id: "ex2", aluno: "Julio", assunto: "Escala menor harmônica", tipo: "teoria", criadoEm: "2026-09-12T12:00:00-03:00" }),
+        ex({ id: "ex3", aluno: "Paula", assunto: "Cifra de Detalhes", observacoes: "Enviei por e-mail", status: "feito", feitoEm: "2026-10-02T12:00:00-03:00", posAula: "Treinar a virada do refrão.", criadoEm: "2026-10-01T12:00:00-03:00" }),
       ],
     };
   }

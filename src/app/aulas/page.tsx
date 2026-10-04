@@ -1,8 +1,22 @@
 import Link from "next/link";
-import { carregarAulas, chaveAluno, linkSeguro, nomeDoLink, type Anotacao } from "@/lib/aulas";
+import {
+  TIPOS,
+  buscas,
+  carregarAulas,
+  chaveAluno,
+  diasDesde,
+  idYoutube,
+  linkSeguro,
+  nomeDoLink,
+  rotuloTipo,
+  tipoValido,
+  type Anotacao,
+} from "@/lib/aulas";
 import { apagarAnotacao, criarAnotacao, editarAnotacao, mudarStatus } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const DIAS_ANTIGO = 14;
 
 function dataBR(iso: string): string {
   const d = new Date(iso);
@@ -10,21 +24,98 @@ function dataBR(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" }).format(d);
 }
 
-function Cartao({ a, ativo, filtro }: { a: Anotacao; ativo: boolean; filtro: string }) {
-  const link = linkSeguro(a.link);
-  const feito = a.status === "feito";
+function semAcento(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+function href(p: { aluno?: string; tipo?: string; q?: string }): string {
+  const q = new URLSearchParams();
+  if (p.aluno) q.set("aluno", p.aluno);
+  if (p.tipo) q.set("tipo", p.tipo);
+  if (p.q) q.set("q", p.q);
+  const s = q.toString();
+  return s ? `/aulas?${s}` : "/aulas";
+}
+
+function Campos({ a, ativo }: { a?: Anotacao; ativo: boolean }) {
   return (
-    <li className={`item ${feito ? "item-feito" : ""}`}>
+    <>
+      <div className="form-linha">
+        <select name="tipo" defaultValue={a?.tipo ?? "musica"} aria-label="Tipo" disabled={!ativo}>
+          {TIPOS.map((t) => (
+            <option key={t.valor} value={t.valor}>
+              {t.rotulo}
+            </option>
+          ))}
+        </select>
+        <input name="tom" defaultValue={a?.tom ?? ""} maxLength={60} placeholder="Tom ou andamento (ex.: Dó maior, 90 bpm)" aria-label="Tom ou andamento" disabled={!ativo} />
+        <select name="prioridade" defaultValue={a?.prioridade ?? "normal"} aria-label="Prioridade" disabled={!ativo}>
+          <option value="normal">Prioridade normal</option>
+          <option value="alta">⭐ Prioridade alta</option>
+        </select>
+      </div>
+      <textarea name="observacoes" defaultValue={a?.observacoes ?? ""} maxLength={1000} rows={3} placeholder="Observações (versão, nível, o que o aluno quer aprender…)" aria-label="Observações" disabled={!ativo} />
+      <input name="link" defaultValue={a?.link ?? ""} maxLength={500} placeholder="Link (vídeo, cifra, partitura…) — opcional" aria-label="Link" disabled={!ativo} />
+    </>
+  );
+}
+
+function Cartao({ a, ativo, voltar }: { a: Anotacao; ativo: boolean; voltar: string }) {
+  const link = linkSeguro(a.link);
+  const yt = link ? idYoutube(link) : "";
+  const feito = a.status === "feito";
+  const dias = diasDesde(a.criadoEm);
+  const antigo = !feito && dias > DIAS_ANTIGO;
+  return (
+    <li className={`item ${feito ? "item-feito" : ""} ${antigo ? "item-antigo" : ""}`}>
       <div className="item-topo">
         <div>
-          <p className="item-titulo">{a.assunto}</p>
+          <p className="item-titulo">
+            {a.prioridade === "alta" && !feito && <span title="Prioridade alta">⭐ </span>}
+            {a.assunto}
+          </p>
+          <p className="selos">
+            <span className="selo">{rotuloTipo(a.tipo)}</span>
+            {a.tom && <span className="selo">🎹 {a.tom}</span>}
+            {!feito && (
+              <span className={`selo ${antigo ? "selo-alerta" : ""}`}>
+                {dias === 0 ? "pedido hoje" : `há ${dias} ${dias === 1 ? "dia" : "dias"}`}
+                {antigo ? " ⚠" : ""}
+              </span>
+            )}
+            {feito && a.feitoEm && <span className="selo">✔ feito em {dataBR(a.feitoEm)}</span>}
+          </p>
           {a.observacoes && <p className="item-detalhe obs">{a.observacoes}</p>}
+          {a.posAula && (
+            <p className="item-detalhe obs pos-aula">
+              <strong>Pós-aula:</strong> {a.posAula}
+            </p>
+          )}
           {link && (
             <p className="item-meta">
-              🔗{" "}
-              <a className="link-origem" href={link} target="_blank" rel="noopener noreferrer">
-                {nomeDoLink(link)} ↗
-              </a>
+              {yt ? (
+                <a className="miniatura" href={link} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="Miniatura do vídeo" width={160} height={90} loading="lazy" />
+                  <span>▶ Abrir vídeo ↗</span>
+                </a>
+              ) : (
+                <>
+                  🔗{" "}
+                  <a className="link-origem" href={link} target="_blank" rel="noopener noreferrer">
+                    {nomeDoLink(link)} ↗
+                  </a>
+                </>
+              )}
+            </p>
+          )}
+          {a.tipo === "musica" && (
+            <p className="buscas">
+              {buscas(a.assunto).map((b) => (
+                <a key={b.rotulo} className="busca" href={b.href} target="_blank" rel="noopener noreferrer">
+                  {b.rotulo}
+                </a>
+              ))}
             </p>
           )}
           <p className="item-meta">anotado em {dataBR(a.criadoEm)}</p>
@@ -35,7 +126,7 @@ function Cartao({ a, ativo, filtro }: { a: Anotacao; ativo: boolean; filtro: str
       <div className="acoes">
         <form action={mudarStatus}>
           <input type="hidden" name="id" value={a.id} />
-          <input type="hidden" name="filtro" value={filtro} />
+          <input type="hidden" name="voltar" value={voltar} />
           <input type="hidden" name="status" value={feito ? "pendente" : "feito"} />
           <button className={`btn-acao ${feito ? "" : "principal"}`} disabled={!ativo}>
             {feito ? "Reabrir" : "Marcar como feito"}
@@ -44,22 +135,22 @@ function Cartao({ a, ativo, filtro }: { a: Anotacao; ativo: boolean; filtro: str
       </div>
 
       <details className="mais">
-        <summary>Editar ou apagar</summary>
+        <summary>{feito ? "Pós-aula, editar ou apagar" : "Editar, pós-aula ou apagar"}</summary>
         <div className="mais-corpo">
           <form action={editarAnotacao} className="form-aula">
             <input type="hidden" name="id" value={a.id} />
-            <input type="hidden" name="filtro" value={filtro} />
+            <input type="hidden" name="voltar" value={voltar} />
             <input name="aluno" defaultValue={a.aluno} required maxLength={80} aria-label="Aluno" disabled={!ativo} />
             <input name="assunto" defaultValue={a.assunto} required maxLength={200} aria-label="Assunto" disabled={!ativo} />
-            <textarea name="observacoes" defaultValue={a.observacoes} maxLength={1000} rows={3} aria-label="Observações" disabled={!ativo} />
-            <input name="link" defaultValue={a.link} maxLength={500} placeholder="Link (opcional)" aria-label="Link" disabled={!ativo} />
+            <Campos a={a} ativo={ativo} />
+            <textarea name="pos_aula" defaultValue={a.posAula} maxLength={1000} rows={2} placeholder="Pós-aula: como foi e tarefa de casa (memória para a próxima aula)" aria-label="Pós-aula" disabled={!ativo} />
             <button className="btn-acao" disabled={!ativo}>
-              Salvar edição
+              Salvar alterações
             </button>
           </form>
           <form action={apagarAnotacao}>
             <input type="hidden" name="id" value={a.id} />
-            <input type="hidden" name="filtro" value={filtro} />
+            <input type="hidden" name="voltar" value={voltar} />
             <button className="btn-acao perigo" disabled={!ativo}>
               Apagar anotação
             </button>
@@ -70,15 +161,43 @@ function Cartao({ a, ativo, filtro }: { a: Anotacao; ativo: boolean; filtro: str
   );
 }
 
-export default async function AulasPage({ searchParams }: { searchParams: Promise<{ aluno?: string; erro?: string }> }) {
-  const { aluno: filtroBruto, erro } = await searchParams;
-  const filtro = (filtroBruto ?? "").trim();
-  const dados = await carregarAulas();
+function agrupar(lista: Anotacao[]): [string, Anotacao[]][] {
+  const mapa = new Map<string, Anotacao[]>();
+  for (const a of lista) {
+    const k = chaveAluno(a.aluno) || a.aluno;
+    mapa.set(k, [...(mapa.get(k) ?? []), a]);
+  }
+  return Array.from(mapa.values())
+    .map((itens): [string, Anotacao[]] => [itens[0].aluno, itens])
+    .sort((x, y) => x[0].localeCompare(y[0], "pt-BR"));
+}
 
+export default async function AulasPage({ searchParams }: { searchParams: Promise<{ aluno?: string; tipo?: string; q?: string; erro?: string }> }) {
+  const { aluno: alunoBruto, tipo: tipoBruto, q: qBruto, erro } = await searchParams;
+  const filtro = (alunoBruto ?? "").trim().slice(0, 80);
+  const tipoFiltro = TIPOS.some((t) => t.valor === tipoBruto) ? tipoValido(tipoBruto ?? "") : "";
+  const busca = (qBruto ?? "").trim().slice(0, 80);
+  const dados = await carregarAulas();
+  const voltar = new URLSearchParams({ ...(filtro && { aluno: filtro }), ...(tipoFiltro && { tipo: tipoFiltro }), ...(busca && { q: busca }) }).toString();
+
+  const todasPendentes = dados.anotacoes.filter((a) => a.status === "pendente");
   const comAnotacao = Array.from(new Set(dados.anotacoes.map((a) => a.aluno).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  const visiveis = filtro ? dados.anotacoes.filter((a) => chaveAluno(a.aluno) === chaveAluno(filtro)) : dados.anotacoes;
-  const pendentes = visiveis.filter((a) => a.status === "pendente");
-  const feitas = visiveis.filter((a) => a.status === "feito");
+  const qn = semAcento(busca);
+
+  const visiveis = dados.anotacoes.filter(
+    (a) =>
+      (!filtro || chaveAluno(a.aluno) === chaveAluno(filtro)) &&
+      (!tipoFiltro || a.tipo === tipoFiltro) &&
+      (!qn || semAcento(`${a.aluno} ${a.assunto} ${a.observacoes} ${a.tom} ${a.posAula}`).includes(qn)),
+  );
+  const pendentes = visiveis
+    .filter((a) => a.status === "pendente")
+    .sort((a, b) => (a.prioridade === b.prioridade ? (a.criadoEm < b.criadoEm ? -1 : 1) : a.prioridade === "alta" ? -1 : 1));
+  const feitas = visiveis.filter((a) => a.status === "feito").sort((a, b) => ((a.feitoEm || a.atualizadoEm) < (b.feitoEm || b.atualizadoEm) ? 1 : -1));
+
+  const antigas = todasPendentes.filter((a) => diasDesde(a.criadoEm) > DIAS_ANTIGO).length;
+  const altas = todasPendentes.filter((a) => a.prioridade === "alta").length;
+  const alunosComPedido = new Set(todasPendentes.map((a) => chaveAluno(a.aluno))).size;
 
   return (
     <div className="tela-neutra">
@@ -91,7 +210,8 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
           <p className="sub">Músicas e assuntos pedidos pelos alunos para a próxima aula.</p>
         </header>
 
-        {erro && <div className="aviso aviso-erro">Não consegui salvar essa ação. Tente de novo em instantes.</div>}
+        {erro === "formato" && <div className="aviso aviso-erro">Use o formato “Aluno – assunto”, por exemplo: Iuri – Amor de Verão.</div>}
+        {erro && erro !== "formato" && <div className="aviso aviso-erro">Não consegui salvar essa ação. Tente de novo em instantes.</div>}
         {!dados.ok && <div className="aviso">{dados.erro}</div>}
 
         {dados.ok && (
@@ -102,58 +222,135 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
               </div>
             )}
 
-            <form action={criarAnotacao} className="form-aula caixa-form">
-              <input type="hidden" name="filtro" value={filtro} />
-              <div className="form-linha">
-                <input name="aluno" list="alunos" required maxLength={80} placeholder="Nome do aluno" defaultValue={filtro} aria-label="Nome do aluno" disabled={!dados.podeEscrever} />
-                <datalist id="alunos">
-                  {dados.alunos.map((n) => (
-                    <option key={n} value={n} />
-                  ))}
-                </datalist>
-                <input name="assunto" required maxLength={200} placeholder="Assunto ou música pedida" aria-label="Assunto" disabled={!dados.podeEscrever} />
+            <div className="resumo-aulas" aria-label="Resumo">
+              <div className="num">
+                <strong>{todasPendentes.length}</strong>
+                <span>pedidos pendentes</span>
               </div>
-              <textarea name="observacoes" maxLength={1000} rows={3} placeholder="Observações (tom, versão, nível, o que o aluno quer aprender…)" aria-label="Observações" disabled={!dados.podeEscrever} />
-              <input name="link" maxLength={500} placeholder="Link (vídeo, cifra, partitura…) — opcional" aria-label="Link" disabled={!dados.podeEscrever} />
+              <div className="num">
+                <strong>{alunosComPedido}</strong>
+                <span>alunos esperando</span>
+              </div>
+              <div className={`num ${altas ? "num-destaque" : ""}`}>
+                <strong>{altas}</strong>
+                <span>prioridade alta</span>
+              </div>
+              <div className={`num ${antigas ? "num-alerta" : ""}`}>
+                <strong>{antigas}</strong>
+                <span>parados há +{DIAS_ANTIGO} dias</span>
+              </div>
+            </div>
+
+            <form action={criarAnotacao} className="form-aula caixa-form">
+              <input type="hidden" name="voltar" value={voltar} />
+              <input
+                name="rapido"
+                maxLength={300}
+                placeholder={`Anotação rápida: ${filtro || "Iuri"} – Amor de Verão`}
+                aria-label="Anotação rápida: aluno – assunto"
+                autoComplete="off"
+                disabled={!dados.podeEscrever}
+                list="alunos"
+                required
+              />
+              <datalist id="alunos">
+                {dados.alunos.map((n) => (
+                  <option key={n} value={`${n} – `} />
+                ))}
+              </datalist>
+              <details className="mais mais-form">
+                <summary>Mais detalhes (tipo, tom, prioridade, observações, link)</summary>
+                <div className="mais-corpo">
+                  <Campos ativo={dados.podeEscrever} />
+                </div>
+              </details>
               <button className="btn-entrar" style={{ width: "auto", marginTop: 0, alignSelf: "flex-start" }} disabled={!dados.podeEscrever}>
                 Salvar anotação
               </button>
             </form>
 
+            <form action="/aulas" method="get" className="busca-form" role="search">
+              {filtro && <input type="hidden" name="aluno" value={filtro} />}
+              {tipoFiltro && <input type="hidden" name="tipo" value={tipoFiltro} />}
+              <input name="q" defaultValue={busca} placeholder="🔎 Buscar por música, aluno, observação…" aria-label="Buscar" />
+              <button className="btn-acao">Buscar</button>
+              {busca && (
+                <Link className="btn-acao" href={href({ aluno: filtro, tipo: tipoFiltro })}>
+                  Limpar
+                </Link>
+              )}
+            </form>
+
             {comAnotacao.length > 0 && (
               <nav className="filtros" aria-label="Filtrar por aluno">
-                <Link href="/aulas" className={`filtro ${filtro ? "" : "ativo"}`}>
+                <Link href={href({ tipo: tipoFiltro, q: busca })} className={`filtro ${filtro ? "" : "ativo"}`}>
                   Todos
                 </Link>
-                {comAnotacao.map((n) => (
-                  <Link key={n} href={`/aulas?aluno=${encodeURIComponent(n)}`} className={`filtro ${chaveAluno(n) === chaveAluno(filtro) && filtro ? "ativo" : ""}`}>
-                    {n}
-                  </Link>
-                ))}
+                {comAnotacao.map((n) => {
+                  const qtd = todasPendentes.filter((a) => chaveAluno(a.aluno) === chaveAluno(n)).length;
+                  return (
+                    <Link
+                      key={n}
+                      href={href({ aluno: n, tipo: tipoFiltro, q: busca })}
+                      className={`filtro ${chaveAluno(n) === chaveAluno(filtro) && filtro ? "ativo" : ""}`}
+                    >
+                      {n}
+                      {qtd > 0 && <span className="contagem">{qtd}</span>}
+                    </Link>
+                  );
+                })}
               </nav>
             )}
+
+            <nav className="filtros" aria-label="Filtrar por tipo">
+              <Link href={href({ aluno: filtro, q: busca })} className={`filtro ${tipoFiltro ? "" : "ativo"}`}>
+                Todos os tipos
+              </Link>
+              {TIPOS.map((t) => (
+                <Link key={t.valor} href={href({ aluno: filtro, tipo: t.valor, q: busca })} className={`filtro ${tipoFiltro === t.valor ? "ativo" : ""}`}>
+                  {t.rotulo}
+                </Link>
+              ))}
+            </nav>
 
             <section>
               <h2 className="subtitulo">Para a próxima aula ({pendentes.length})</h2>
               {pendentes.length === 0 ? (
-                <div className="aviso">Nenhum pedido pendente{filtro ? ` para ${filtro}` : ""}.</div>
+                <div className="vazio">
+                  <p>🎶 Nenhum pedido pendente{filtro ? ` para ${filtro}` : ""}{busca || tipoFiltro ? " com esses filtros" : ""}.</p>
+                  <p className="item-meta">Use a anotação rápida acima: “Aluno – música”.</p>
+                </div>
               ) : (
-                <ul className="lista-itens">
-                  {pendentes.map((a) => (
-                    <Cartao key={a.id} a={a} ativo={dados.podeEscrever} filtro={filtro} />
-                  ))}
-                </ul>
+                agrupar(pendentes).map(([nome, itens]) => (
+                  <details key={nome} className="resolvidos grupo" open>
+                    <summary>
+                      {nome} ({itens.length})
+                    </summary>
+                    <ul className="lista-itens">
+                      {itens.map((a) => (
+                        <Cartao key={a.id} a={a} ativo={dados.podeEscrever} voltar={voltar} />
+                      ))}
+                    </ul>
+                  </details>
+                ))
               )}
             </section>
 
             {feitas.length > 0 && (
               <details className="resolvidos">
-                <summary>Já feitas ({feitas.length})</summary>
-                <ul className="lista-itens">
-                  {feitas.map((a) => (
-                    <Cartao key={a.id} a={a} ativo={dados.podeEscrever} filtro={filtro} />
-                  ))}
-                </ul>
+                <summary>Histórico de aulas — já feitas ({feitas.length})</summary>
+                {agrupar(feitas).map(([nome, itens]) => (
+                  <details key={nome} className="resolvidos grupo">
+                    <summary>
+                      {nome} ({itens.length})
+                    </summary>
+                    <ul className="lista-itens">
+                      {itens.map((a) => (
+                        <Cartao key={a.id} a={a} ativo={dados.podeEscrever} voltar={voltar} />
+                      ))}
+                    </ul>
+                  </details>
+                ))}
               </details>
             )}
           </>
