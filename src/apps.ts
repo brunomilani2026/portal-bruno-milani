@@ -41,6 +41,22 @@ export function listarSistemas(): SistemaApp[] {
       situacao: "ativo",
     },
     {
+      id: "agenda-pro-music",
+      nome: "Agenda Pro Music",
+      descricao: "Agenda, alunos e cobranças das aulas.",
+      icone: "📅",
+      href: process.env.URL_AGENDA_PRO_MUSIC || "https://www.agendapromusic.com.br/",
+      situacao: "ativo",
+    },
+    {
+      id: "site",
+      nome: "Site Bruno Milani",
+      descricao: "Produtos, aulas online e e-books.",
+      icone: "🌐",
+      href: process.env.URL_SITE || "https://brunomilani.com.br/",
+      situacao: "ativo",
+    },
+    {
       id: "crm",
       nome: "CRM de Vendas",
       descricao: "Leads, propostas e fechamentos.",
