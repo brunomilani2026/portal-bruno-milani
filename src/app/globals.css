@@ -1105,3 +1105,13 @@ a.cartao:focus-visible {
   background: #fff6e6;
   color: #7a4b00;
 }
+
+.ordens {
+  align-items: center;
+  margin-top: 4px;
+}
+
+.rotulo-ordem {
+  font-size: 0.85rem;
+  color: #5b6168;
+}

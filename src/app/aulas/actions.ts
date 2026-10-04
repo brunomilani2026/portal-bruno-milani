@@ -14,7 +14,7 @@ function voltarQuery(f: FormData, extra: Record<string, string> = {}): string {
   const q = new URLSearchParams();
   try {
     const de = new URLSearchParams(String(f.get("voltar") ?? ""));
-    for (const k of ["aluno", "tipo", "q"]) {
+    for (const k of ["aluno", "tipo", "q", "ordem"]) {
       const v = (de.get(k) ?? "").slice(0, 80);
       if (v) q.set(k, v);
     }

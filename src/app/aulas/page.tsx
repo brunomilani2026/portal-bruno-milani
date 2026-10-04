@@ -31,8 +31,44 @@ function semAcento(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-function href(p: { aluno?: string; tipo?: string; q?: string }): string {
+const ORDENS = [
+  { valor: "entrega", rotulo: "📅 Ordem de entrega", ajuda: "alunos pela aula mais próxima" },
+  { valor: "alfabetica", rotulo: "🔤 Alunos A–Z", ajuda: "alunos em ordem alfabética" },
+  { valor: "recentes", rotulo: "🆕 Anotados por último", ajuda: "do pedido mais novo para o mais antigo" },
+  { valor: "antigas", rotulo: "⏳ Mais antigos primeiro", ajuda: "quem espera há mais tempo" },
+  { valor: "prioridade", rotulo: "⭐ Prioridade", ajuda: "prioridade alta primeiro" },
+  { valor: "musica", rotulo: "🎵 Música A–Z", ajuda: "pelo nome da música/assunto" },
+  { valor: "tipo", rotulo: "🗂️ Por tipo", ajuda: "música, técnica, teoria, apresentação" },
+] as const;
+
+type Ordem = (typeof ORDENS)[number]["valor"];
+const AGRUPADAS: Ordem[] = ["entrega", "alfabetica"];
+
+function ordenar(lista: Anotacao[], ordem: Ordem): Anotacao[] {
+  const pt = (x: string, y: string) => x.localeCompare(y, "pt-BR");
+  const antigaPrimeiro = (a: Anotacao, b: Anotacao) => (a.criadoEm < b.criadoEm ? -1 : a.criadoEm > b.criadoEm ? 1 : 0);
+  const copia = [...lista];
+  switch (ordem) {
+    case "alfabetica":
+      return copia.sort((a, b) => pt(a.assunto, b.assunto));
+    case "recentes":
+      return copia.sort((a, b) => -antigaPrimeiro(a, b));
+    case "antigas":
+      return copia.sort(antigaPrimeiro);
+    case "prioridade":
+      return copia.sort((a, b) => (a.prioridade === b.prioridade ? antigaPrimeiro(a, b) : a.prioridade === "alta" ? -1 : 1));
+    case "musica":
+      return copia.sort((a, b) => pt(a.assunto, b.assunto));
+    case "tipo":
+      return copia.sort((a, b) => TIPOS.findIndex((t) => t.valor === a.tipo) - TIPOS.findIndex((t) => t.valor === b.tipo) || pt(a.aluno, b.aluno) || antigaPrimeiro(a, b));
+    default:
+      return copia.sort((a, b) => (a.prioridade === b.prioridade ? antigaPrimeiro(a, b) : a.prioridade === "alta" ? -1 : 1));
+  }
+}
+
+function href(p: { aluno?: string; tipo?: string; q?: string; ordem?: string }): string {
   const q = new URLSearchParams();
+  if (p.ordem && p.ordem !== "entrega") q.set("ordem", p.ordem);
   if (p.aluno) q.set("aluno", p.aluno);
   if (p.tipo) q.set("tipo", p.tipo);
   if (p.q) q.set("q", p.q);
@@ -182,13 +218,14 @@ function agrupar(lista: Anotacao[], proximas: Record<string, string> = {}): [str
     });
 }
 
-export default async function AulasPage({ searchParams }: { searchParams: Promise<{ aluno?: string; tipo?: string; q?: string; erro?: string }> }) {
-  const { aluno: alunoBruto, tipo: tipoBruto, q: qBruto, erro } = await searchParams;
+export default async function AulasPage({ searchParams }: { searchParams: Promise<{ aluno?: string; tipo?: string; q?: string; ordem?: string; erro?: string }> }) {
+  const { aluno: alunoBruto, tipo: tipoBruto, q: qBruto, ordem: ordemBruta, erro } = await searchParams;
+  const ordem: Ordem = ORDENS.find((o) => o.valor === ordemBruta)?.valor ?? "entrega";
   const filtro = (alunoBruto ?? "").trim().slice(0, 80);
   const tipoFiltro = TIPOS.some((t) => t.valor === tipoBruto) ? tipoValido(tipoBruto ?? "") : "";
   const busca = (qBruto ?? "").trim().slice(0, 80);
   const dados = await carregarAulas();
-  const voltar = new URLSearchParams({ ...(filtro && { aluno: filtro }), ...(tipoFiltro && { tipo: tipoFiltro }), ...(busca && { q: busca }) }).toString();
+  const voltar = new URLSearchParams({ ...(filtro && { aluno: filtro }), ...(tipoFiltro && { tipo: tipoFiltro }), ...(busca && { q: busca }), ...(ordem !== "entrega" && { ordem }) }).toString();
 
   const todasPendentes = dados.anotacoes.filter((a) => a.status === "pendente");
   const comAnotacao = Array.from(new Set(dados.anotacoes.map((a) => a.aluno).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -200,9 +237,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
       (!tipoFiltro || a.tipo === tipoFiltro) &&
       (!qn || semAcento(`${a.aluno} ${a.assunto} ${a.observacoes} ${a.tom} ${a.posAula}`).includes(qn)),
   );
-  const pendentes = visiveis
-    .filter((a) => a.status === "pendente")
-    .sort((a, b) => (a.prioridade === b.prioridade ? (a.criadoEm < b.criadoEm ? -1 : 1) : a.prioridade === "alta" ? -1 : 1));
+  const pendentes = ordenar(visiveis.filter((a) => a.status === "pendente"), ordem === "entrega" ? "entrega" : ordem);
   const feitas = visiveis.filter((a) => a.status === "feito").sort((a, b) => ((a.feitoEm || a.atualizadoEm) < (b.feitoEm || b.atualizadoEm) ? 1 : -1));
 
   const preparar = agrupar(todasPendentes, dados.proximas)
@@ -261,7 +296,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                 <ul>
                   {preparar.map(([nome, itens, iso]) => (
                     <li key={nome}>
-                      <Link href={href({ aluno: nome })}>
+                      <Link href={href({ aluno: nome , ordem })}>
                         <strong>{nome}</strong>
                       </Link>{" "}
                       — {rotuloAula(iso)} <span className="prazo-aula">({textoPrazo(diasAte(iso))})</span>: {itens.map((i) => i.assunto).join(" · ")}
@@ -302,10 +337,11 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
             <form action="/aulas" method="get" className="busca-form" role="search">
               {filtro && <input type="hidden" name="aluno" value={filtro} />}
               {tipoFiltro && <input type="hidden" name="tipo" value={tipoFiltro} />}
+              {ordem !== "entrega" && <input type="hidden" name="ordem" value={ordem} />}
               <input name="q" defaultValue={busca} placeholder="🔎 Buscar por música, aluno, observação…" aria-label="Buscar" />
               <button className="btn-acao">Buscar</button>
               {busca && (
-                <Link className="btn-acao" href={href({ aluno: filtro, tipo: tipoFiltro })}>
+                <Link className="btn-acao" href={href({ aluno: filtro, tipo: tipoFiltro , ordem })}>
                   Limpar
                 </Link>
               )}
@@ -313,7 +349,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
 
             {comAnotacao.length > 0 && (
               <nav className="filtros" aria-label="Filtrar por aluno">
-                <Link href={href({ tipo: tipoFiltro, q: busca })} className={`filtro ${filtro ? "" : "ativo"}`}>
+                <Link href={href({ tipo: tipoFiltro, q: busca , ordem })} className={`filtro ${filtro ? "" : "ativo"}`}>
                   Todos
                 </Link>
                 {comAnotacao.map((n) => {
@@ -321,7 +357,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                   return (
                     <Link
                       key={n}
-                      href={href({ aluno: n, tipo: tipoFiltro, q: busca })}
+                      href={href({ aluno: n, tipo: tipoFiltro, q: busca , ordem })}
                       className={`filtro ${chaveAluno(n) === chaveAluno(filtro) && filtro ? "ativo" : ""}`}
                     >
                       {n}
@@ -333,12 +369,21 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
             )}
 
             <nav className="filtros" aria-label="Filtrar por tipo">
-              <Link href={href({ aluno: filtro, q: busca })} className={`filtro ${tipoFiltro ? "" : "ativo"}`}>
+              <Link href={href({ aluno: filtro, q: busca , ordem })} className={`filtro ${tipoFiltro ? "" : "ativo"}`}>
                 Todos os tipos
               </Link>
               {TIPOS.map((t) => (
-                <Link key={t.valor} href={href({ aluno: filtro, tipo: t.valor, q: busca })} className={`filtro ${tipoFiltro === t.valor ? "ativo" : ""}`}>
+                <Link key={t.valor} href={href({ aluno: filtro, tipo: t.valor, q: busca , ordem })} className={`filtro ${tipoFiltro === t.valor ? "ativo" : ""}`}>
                   {t.rotulo}
+                </Link>
+              ))}
+            </nav>
+
+            <nav className="filtros ordens" aria-label="Ordenar">
+              <span className="rotulo-ordem">Ordenar por:</span>
+              {ORDENS.map((o) => (
+                <Link key={o.valor} href={href({ aluno: filtro, tipo: tipoFiltro, q: busca, ordem: o.valor })} title={o.ajuda} className={`filtro ${ordem === o.valor ? "ativo" : ""}`}>
+                  {o.rotulo}
                 </Link>
               ))}
             </nav>
@@ -351,7 +396,14 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                   <p className="item-meta">Use a anotação rápida acima: “Aluno – música”.</p>
                 </div>
               ) : (
-                agrupar(pendentes, dados.proximas).map(([nome, itens]) => {
+                !AGRUPADAS.includes(ordem) ? (
+                  <ul className="lista-itens">
+                    {pendentes.map((a) => (
+                      <Cartao key={a.id} a={a} ativo={dados.podeEscrever} voltar={voltar} />
+                    ))}
+                  </ul>
+                ) : (
+                agrupar(pendentes, ordem === "entrega" ? dados.proximas : {}).map(([nome, itens]) => {
                   const iso = dados.proximas[chaveAluno(nome)];
                   return (
                   <details key={nome} className="resolvidos grupo" open>
@@ -371,6 +423,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                   </details>
                   );
                 })
+                )
               )}
             </section>
 
