@@ -776,3 +776,95 @@ a.cartao:focus-visible {
   background: #fdeff1;
   color: #8a1f17;
 }
+
+/* Anotações de aulas */
+.caixa-form {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: #ffffff;
+  margin-bottom: 8px;
+}
+
+.form-aula {
+  display: grid;
+  gap: 10px;
+}
+
+.form-linha {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.form-linha input {
+  flex: 1 1 220px;
+}
+
+.form-aula input,
+.form-aula textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #c9cdd1;
+  background: #ffffff;
+  color: #1f2328;
+  font: inherit;
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.form-aula textarea {
+  resize: vertical;
+}
+
+.form-aula input:focus,
+.form-aula textarea:focus {
+  outline: 2px solid #73162f;
+  outline-offset: 1px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.filtro {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #c9cdd1;
+  background: #ffffff;
+  font-size: 0.9rem;
+}
+
+.filtro:hover {
+  border-color: #73162f;
+}
+
+.filtro.ativo {
+  background: #73162f;
+  border-color: #73162f;
+  color: #ffffff;
+}
+
+.item-feito {
+  opacity: 0.7;
+}
+
+.obs {
+  white-space: pre-wrap;
+}
+
+.pedidos {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 0.88rem;
+  color: #73162f;
+}
+
+.pedidos a {
+  text-decoration: underline;
+}

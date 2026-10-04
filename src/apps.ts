@@ -25,6 +25,14 @@ export function listarSistemas(): SistemaApp[] {
       situacao: "ativo",
     },
     {
+      id: "aulas",
+      nome: "Anotações de aulas",
+      descricao: "Músicas e assuntos pedidos pelos alunos para a próxima aula.",
+      icone: "📝",
+      href: "/aulas",
+      situacao: "ativo",
+    },
+    {
       id: "financas",
       nome: "Finanças",
       descricao: "Contas, shows, alunos, Hotmart e despesas.",

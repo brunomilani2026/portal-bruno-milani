@@ -12,6 +12,7 @@ export const STORES = {
   tarefas: process.env.MAKE_DS_TAREFAS || "164497",
   status: process.env.MAKE_DS_STATUS || "164498",
   capturas: process.env.MAKE_DS_CAPTURAS || "164499",
+  aulas: process.env.MAKE_DS_AULAS || "164532",
 };
 
 export type RegistroMake = { key: string; data: Record<string, unknown> };

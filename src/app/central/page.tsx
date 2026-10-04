@@ -283,6 +283,12 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                             <span>
                               {a.titulo}
                               {a.detalhe && <em> — {a.detalhe}</em>}
+                              {a.pedidos.length > 0 && (
+                                <span className="pedidos">
+                                  {" "}
+                                  📝 <Link href={`/aulas?aluno=${encodeURIComponent(a.titulo.split(" ")[0])}`}>{a.pedidos.join(" · ")}</Link>
+                                </span>
+                              )}
                             </span>
                           </li>
                         ))}
@@ -299,6 +305,12 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                             <span>
                               {a.titulo}
                               {a.detalhe && <em> — {a.detalhe}</em>}
+                              {a.pedidos.length > 0 && (
+                                <span className="pedidos">
+                                  {" "}
+                                  📝 <Link href={`/aulas?aluno=${encodeURIComponent(a.titulo.split(" ")[0])}`}>{a.pedidos.join(" · ")}</Link>
+                                </span>
+                              )}
                             </span>
                           </li>
                         ))}

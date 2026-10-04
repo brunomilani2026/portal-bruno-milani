@@ -1,3 +1,4 @@
+import { chaveAluno, listarAnotacoes } from "./aulas";
 import { listarRegistros, STORES, temTokenEscrita, temTokenLeitura, type RegistroMake } from "./make";
 
 export type Nivel = "critico" | "importante" | "aguardar";
@@ -25,6 +26,8 @@ export type ItemCentral = {
   /** só agenda */
   data: string;
   hora: string;
+  /** só agenda de aulas: pedidos pendentes do aluno (música/assunto) */
+  pedidos: string[];
   anotacao: boolean;
 };
 
@@ -95,7 +98,7 @@ function oculto(status: Record<string, unknown> | undefined, hoje: string): bool
 function vazio(key: string): ItemCentral {
   return {
     key, titulo: key, detalhe: "", area: "outro", origem: "", prazo: "", valor: 0, score: 0, scoreBase: 0, ajuste: 0, porque: "",
-    href: "", whatsapp: "", nota: "", quem: "", ultimoContato: "", lembrarEm: "", data: "", hora: "", anotacao: false,
+    href: "", whatsapp: "", nota: "", quem: "", ultimoContato: "", lembrarEm: "", data: "", hora: "", pedidos: [], anotacao: false,
   };
 }
 
@@ -132,7 +135,7 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       ],
       aguardando: [ex("e", "Reembolso", "Aguardando formulário", 24, "financeiro", { quem: "MuseScore", ultimoContato: "2026-10-01", lembrarEm: "2026-10-05" })],
       agenda: [
-        ex("g1", "Jayden", "Aula", 0, "aulas", { data: hoje, hora: "11:00" }),
+        ex("g1", "Jayden", "Aula", 0, "aulas", { data: hoje, hora: "11:00", pedidos: ["Samba de Roda — Trem das Onze"] }),
         ex("g2", "Show — Bar 80", "R$ 400,00", 0, "shows", { data: hoje, hora: "17:00" }),
         ex("g3", "Show — Casinha de Madeira", "R$ 400,00", 0, "shows", { data: somaDias(hoje, 1), hora: "23:30" }),
       ],
@@ -147,11 +150,13 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   let tarefas: RegistroMake[];
   let status: RegistroMake[];
   let capturas: RegistroMake[];
+  let pedidosAulas: Awaited<ReturnType<typeof listarAnotacoes>> = [];
   try {
-    [tarefas, status, capturas] = await Promise.all([
+    [tarefas, status, capturas, pedidosAulas] = await Promise.all([
       listarRegistros(STORES.tarefas),
       listarRegistros(STORES.status),
       listarRegistros(STORES.capturas),
+      listarAnotacoes().catch(() => []),
     ]);
   } catch (e) {
     // o detalhe (ex.: "Make respondeu 403") não contém segredos e ajuda a diagnosticar
@@ -181,6 +186,7 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       tudoCerto = txt(d.detalhe).split("\n").map((l) => l.trim()).filter(Boolean);
       continue;
     }
+    if (tipo === "alunos") continue; // lista de nomes usada só pela página de aulas
 
     const st = statusPorChave.get(r.key);
     const item: ItemCentral = {
@@ -243,6 +249,12 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   itens.sort((a, b) => b.score - a.score);
   aguardando.sort((a, b) => ((a.lembrarEm || "9999") < (b.lembrarEm || "9999") ? -1 : 1));
   agenda.sort((a, b) => (a.data + a.hora < b.data + b.hora ? -1 : 1));
+  for (const a of agenda) {
+    if (a.area !== "aulas") continue;
+    const k = chaveAluno(a.titulo);
+    if (!k) continue;
+    a.pedidos = pedidosAulas.filter((p) => p.status === "pendente" && chaveAluno(p.aluno) === k).map((p) => p.assunto);
+  }
 
   const resolvidos: Resolvido[] = [];
   for (const r of status) {
