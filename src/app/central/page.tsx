@@ -309,8 +309,8 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
               </section>
             )}
 
-            <section>
-              <h2 className="subtitulo">🎯 Top 5 do dia</h2>
+            <details className="resolvidos" open>
+              <summary>🎯 Top 5 do dia ({top.length})</summary>
               {top.length === 0 ? (
                 <div className="aviso">Nada exigindo atenção agora. 🎉</div>
               ) : (
@@ -320,7 +320,7 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
                   ))}
                 </ul>
               )}
-            </section>
+            </details>
 
             {dia.aguardando.length > 0 && (
               <section>
@@ -346,14 +346,14 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
             )}
 
             {resto.length > 0 && (
-              <section>
-                <h2 className="subtitulo">Outras pendências ({resto.length})</h2>
+              <details className="resolvidos">
+                <summary>Outras pendências ({resto.length})</summary>
                 <ul className="lista-itens">
                   {resto.map((i) => (
                     <Linha key={i.key} item={i} ativo={dia.podeEscrever} />
                   ))}
                 </ul>
-              </section>
+              </details>
             )}
 
             {dia.resumo && (
