@@ -357,14 +357,14 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
             )}
 
             {dia.resumo && (
-              <details className="recolhivel">
+              <details className="resolvidos">
                 <summary>💰 Resumo financeiro</summary>
                 <div className="caixa-texto">{dia.resumo}</div>
               </details>
             )}
 
             {dia.tudoCerto.length > 0 && (
-              <details className="recolhivel">
+              <details className="resolvidos">
                 <summary>✅ Está tudo certo ({dia.tudoCerto.length})</summary>
                 <ul className="tudo-certo">
                   {dia.tudoCerto.map((t) => (
