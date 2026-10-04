@@ -1,45 +1,142 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { hojeSP, somaDias } from "@/lib/central";
-import { criarRegistro, gravarRegistro, STORES, temTokenEscrita } from "@/lib/make";
+import { apagarRegistros, criarRegistro, gravarRegistro, listarRegistros, STORES, temTokenEscrita } from "@/lib/make";
 
-type Acao = "concluida" | "adiada" | "ignorada" | "aberta";
+type Dados = Record<string, unknown>;
+const AREAS = ["aulas", "shows", "hotmart", "financeiro", "cavaco", "pessoal", "outro"];
 
 function str(f: FormData, nome: string): string {
   return String(f.get(nome) ?? "").trim();
 }
 
-async function marcar(key: string, status: Acao, dias?: number) {
-  if (!key || !temTokenEscrita()) return;
-  await gravarRegistro(STORES.status, key, {
-    status,
-    adiada_ate: status === "adiada" && dias ? somaDias(hojeSP(), dias) : "",
-    nota: "",
-    atualizado_em: new Date().toISOString(),
-  });
-  revalidatePath("/central");
+function areaValida(a: string): string {
+  return AREAS.includes(a) ? a : "outro";
+}
+
+async function statusAtual(key: string): Promise<Dados> {
+  const todos = await listarRegistros(STORES.status);
+  return todos.find((r) => r.key === key)?.data ?? {};
+}
+
+/** Mescla o status existente com as mudanças pedidas e grava. */
+async function salvarStatus(f: FormData, mudar: (atual: Dados) => Dados): Promise<boolean> {
+  const key = str(f, "key");
+  if (!key || !temTokenEscrita()) return false;
+  try {
+    const atual = await statusAtual(key);
+    const titulo = str(f, "titulo");
+    const area = str(f, "area");
+    await gravarRegistro(STORES.status, key, {
+      status: "aberta",
+      adiada_ate: "",
+      nota: "",
+      prioridade: 0,
+      titulo: "",
+      area: "",
+      ...atual,
+      ...(titulo ? { titulo: titulo.slice(0, 200) } : {}),
+      ...(area ? { area } : {}),
+      ...mudar(atual),
+      atualizado_em: new Date().toISOString(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function terminar(ok: boolean): never {
+  if (ok) {
+    revalidatePath("/central");
+    redirect("/central");
+  }
+  redirect("/central?erro=acao");
 }
 
 export async function concluir(f: FormData) {
-  await marcar(str(f, "key"), "concluida");
+  terminar(await salvarStatus(f, () => ({ status: "concluida", adiada_ate: "" })));
 }
 
 export async function adiar(f: FormData) {
   const dias = Math.max(1, Math.min(30, Number(str(f, "dias")) || 1));
-  await marcar(str(f, "key"), "adiada", dias);
+  terminar(await salvarStatus(f, () => ({ status: "adiada", adiada_ate: somaDias(hojeSP(), dias) })));
 }
 
 export async function ignorar(f: FormData) {
-  await marcar(str(f, "key"), "ignorada");
+  terminar(await salvarStatus(f, () => ({ status: "ignorada", adiada_ate: "" })));
+}
+
+export async function reabrir(f: FormData) {
+  terminar(await salvarStatus(f, () => ({ status: "aberta", adiada_ate: "" })));
+}
+
+export async function salvarNota(f: FormData) {
+  const nota = str(f, "nota").slice(0, 500);
+  terminar(await salvarStatus(f, () => ({ nota })));
+}
+
+export async function ajustarPrioridade(f: FormData) {
+  const delta = Number(str(f, "delta")) || 0;
+  terminar(
+    await salvarStatus(f, (atual) => ({
+      prioridade: Math.max(-50, Math.min(50, (Number(atual.prioridade) || 0) + delta)),
+    })),
+  );
 }
 
 export async function anotar(f: FormData) {
   const texto = str(f, "texto").slice(0, 500);
-  if (!texto || !temTokenEscrita()) return;
-  const prazo = /^\d{4}-\d{2}-\d{2}$/.test(str(f, "prazo")) ? str(f, "prazo") : "";
-  const area = ["aulas", "shows", "hotmart", "financeiro", "cavaco", "pessoal", "outro"].includes(str(f, "area")) ? str(f, "area") : "pessoal";
+  if (!texto || !temTokenEscrita()) return terminar(false);
+  const prazoBruto = str(f, "prazo");
+  const prazo = /^\d{4}-\d{2}-\d{2}$/.test(prazoBruto) ? prazoBruto : "";
   const id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  await criarRegistro(STORES.capturas, id, { texto, area, prazo, criado_em: new Date().toISOString() });
-  revalidatePath("/central");
+  let ok = false;
+  try {
+    await criarRegistro(STORES.capturas, id, { texto, area: areaValida(str(f, "area") || "pessoal"), prazo, criado_em: new Date().toISOString() });
+    ok = true;
+  } catch {
+    ok = false;
+  }
+  terminar(ok);
+}
+
+export async function editarAnotacao(f: FormData) {
+  const chave = str(f, "key");
+  const id = chave.startsWith("captura:") ? chave.slice(8) : "";
+  const texto = str(f, "texto").slice(0, 500);
+  if (!id || !texto || !temTokenEscrita()) return terminar(false);
+  const prazoBruto = str(f, "prazo");
+  let ok = false;
+  try {
+    const todos = await listarRegistros(STORES.capturas);
+    const atual = todos.find((r) => r.key === id)?.data ?? {};
+    await gravarRegistro(STORES.capturas, id, {
+      texto,
+      area: areaValida(str(f, "area") || "pessoal"),
+      prazo: /^\d{4}-\d{2}-\d{2}$/.test(prazoBruto) ? prazoBruto : "",
+      criado_em: typeof atual.criado_em === "string" ? atual.criado_em : new Date().toISOString(),
+    });
+    ok = true;
+  } catch {
+    ok = false;
+  }
+  terminar(ok);
+}
+
+export async function apagarAnotacao(f: FormData) {
+  const chave = str(f, "key");
+  const id = chave.startsWith("captura:") ? chave.slice(8) : "";
+  if (!id || !temTokenEscrita()) return terminar(false);
+  let ok = false;
+  try {
+    await apagarRegistros(STORES.capturas, [id]);
+    ok = true;
+  } catch {
+    // se o Make recusar a exclusão, esconde a anotação marcando como ignorada
+    ok = await salvarStatus(f, () => ({ status: "ignorada", adiada_ate: "" }));
+  }
+  terminar(ok);
 }

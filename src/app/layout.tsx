@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   title: "Bruno Milani — Meus sistemas",
   description: "Portal pessoal de acesso aos sistemas do Bruno Milani.",
   robots: { index: false, follow: false },
+  icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Meu Dia", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

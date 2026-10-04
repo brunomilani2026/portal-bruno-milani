@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, tokenValido } from "@/lib/session";
 
-const PUBLICOS = ["/login", "/logo.png", "/favicon.ico", "/robots.txt"];
+const PUBLICOS = ["/login", "/logo.png", "/favicon.ico", "/robots.txt", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

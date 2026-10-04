@@ -96,6 +96,14 @@ export async function gravarRegistro(storeId: string, key: string, data: Record<
   }
 }
 
+/** Apaga registros pelas chaves (DELETE com corpo). */
+export async function apagarRegistros(storeId: string, keys: string[]): Promise<void> {
+  await chamar(`/data-stores/${storeId}/data`, process.env.MAKE_API_TOKEN_WRITE, {
+    method: "DELETE",
+    body: JSON.stringify({ keys }),
+  });
+}
+
 export async function criarRegistro(storeId: string, key: string, data: Record<string, unknown>): Promise<void> {
   await chamar(`/data-stores/${storeId}/data`, process.env.MAKE_API_TOKEN_WRITE, {
     method: "POST",

@@ -625,3 +625,154 @@ a.cartao:focus-visible {
   border-color: #73162f;
   color: #73162f;
 }
+/* Meu Dia: agenda, notas, mais opções, resumo */
+.agenda {
+  display: grid;
+  gap: 14px;
+}
+
+.agenda-dia {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agenda-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.agenda-lista li {
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.agenda-lista .hora {
+  font-weight: 700;
+  min-width: 48px;
+  color: #73162f;
+}
+
+.agenda-lista em {
+  font-style: normal;
+  color: var(--texto-suave);
+}
+
+.item-nota {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 0.92rem;
+}
+
+.btn-acao.whats {
+  background: #1f9d55;
+  border-color: #1f9d55;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-acao.perigo {
+  color: #b3261e;
+  border-color: #e3b4b0;
+}
+
+.mais {
+  margin-top: 10px;
+}
+
+.mais summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.mais-corpo {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.linha-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.linha-form form {
+  margin: 0;
+}
+
+.linha-form input,
+.linha-form select,
+.captura select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #c9cdd1;
+  background: #ffffff;
+  color: #1f2328;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.linha-form input[name="nota"],
+.linha-form input[name="texto"] {
+  flex: 1 1 200px;
+}
+
+.captura select {
+  flex: 0 0 auto;
+}
+
+.caixa-texto {
+  white-space: pre-line;
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: #ffffff;
+  line-height: 1.6;
+}
+
+.tudo-certo {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: #ffffff;
+  display: grid;
+  gap: 4px;
+  color: #2e6b45;
+}
+
+.resolvidos {
+  margin-top: 24px;
+}
+
+.resolvidos summary {
+  cursor: pointer;
+  font-family: var(--fonte-titulo), Georgia, serif;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.aviso-erro {
+  margin-bottom: 14px;
+  border-color: #e3b4b0;
+  background: #fdeff1;
+  color: #8a1f17;
+}
