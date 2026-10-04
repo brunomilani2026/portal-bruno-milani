@@ -69,6 +69,13 @@ export async function ignorar(f: FormData) {
   terminar(await salvarStatus(f, () => ({ status: "ignorada", adiada_ate: "" })));
 }
 
+export async function adiarAte(f: FormData) {
+  const data = str(f, "ate");
+  const valida = /^\d{4}-\d{2}-\d{2}$/.test(data) && data > hojeSP();
+  if (!valida) return terminar(false);
+  terminar(await salvarStatus(f, () => ({ status: "adiada", adiada_ate: data })));
+}
+
 export async function reabrir(f: FormData) {
   terminar(await salvarStatus(f, () => ({ status: "aberta", adiada_ate: "" })));
 }

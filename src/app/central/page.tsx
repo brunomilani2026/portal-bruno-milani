@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { carregarMeuDia, nivelDoScore, type ItemCentral, type Resolvido } from "@/lib/central";
 import { acaoWhatsApp } from "@/lib/whatsapp";
-import { adiar, ajustarPrioridade, anotar, apagarAnotacao, concluir, editarAnotacao, ignorar, reabrir, salvarNota } from "./actions";
+import { linkFinanceiro } from "@/lib/links";
+import { adiar, adiarAte, ajustarPrioridade, anotar, apagarAnotacao, concluir, editarAnotacao, ignorar, reabrir, salvarNota } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -94,11 +95,24 @@ function Acoes({ item, ativo }: { item: ItemCentral; ativo: boolean }) {
             Abrir origem →
           </a>
         )}
+        {!(item.href && /^https?:\/\//.test(item.href)) && linkFinanceiro(item.key) && (
+          <a className="link-origem" href={linkFinanceiro(item.key)} target="_blank" rel="noopener noreferrer">
+            Abrir no financeiro →
+          </a>
+        )}
       </div>
 
       <details className="mais">
         <summary>Mais opções</summary>
         <div className="mais-corpo">
+          <form action={adiarAte} className="linha-form">
+            <Ocultos item={item} />
+            <span className="item-meta">Adiar até:</span>
+            <input name="ate" type="date" required aria-label="Adiar até a data" disabled={!ativo} />
+            <button className="btn-acao" disabled={!ativo}>
+              Adiar
+            </button>
+          </form>
           <form action={salvarNota} className="linha-form">
             <Ocultos item={item} />
             <input name="nota" defaultValue={item.nota} maxLength={500} placeholder="Observação" aria-label="Observação" disabled={!ativo} />
@@ -213,12 +227,16 @@ function Resolvidos({ lista, ativo }: { lista: Resolvido[]; ativo: boolean }) {
   );
 }
 
-export default async function CentralPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
-  const { erro } = await searchParams;
+export default async function CentralPage({ searchParams }: { searchParams: Promise<{ erro?: string; area?: string }> }) {
+  const { erro, area } = await searchParams;
   const dia = await carregarMeuDia();
   const criticos = dia.itens.filter((i) => nivelDoScore(i.score) === "critico").length;
-  const top = dia.itens.slice(0, 5);
-  const resto = dia.itens.slice(5);
+  const filtroArea = (area ?? "").trim();
+  const visiveis = filtroArea ? dia.itens.filter((i) => i.area === filtroArea) : dia.itens;
+  const contagemPorArea = new Map<string, number>();
+  for (const i of dia.itens) contagemPorArea.set(i.area, (contagemPorArea.get(i.area) ?? 0) + 1);
+  const top = visiveis.slice(0, 5);
+  const resto = visiveis.slice(5);
   // "Outras pendências" separadas por assunto (área); os grupos mais urgentes vêm primeiro
   const porArea = new Map<string, typeof resto>();
   for (const i of resto) {
@@ -243,6 +261,12 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
 
         {erro && <div className="aviso aviso-erro">Não consegui salvar essa ação. Tente de novo em instantes.</div>}
         {!dia.ok && <div className="aviso">{dia.erro}</div>}
+        {dia.ok && dia.desatualizado && (
+          <div className="aviso aviso-atencao">
+            ⚠️ Dados do assistente desatualizados: última atualização em {quando(dia.atualizadoEm)}. Se o notebook estava desligado, abra o app Claude e use
+            “Executar agora” na rotina.
+          </div>
+        )}
 
         {dia.ok && (
           <>
@@ -338,6 +362,30 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
               </section>
             )}
 
+            {dia.plano.length > 0 && (
+              <details className="resolvidos" open>
+                <summary>🗓️ Ordem sugerida para hoje</summary>
+                <ol className="plano">
+                  {dia.plano.map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                </ol>
+              </details>
+            )}
+
+            {contagemPorArea.size > 1 && (
+              <nav className="filtros" aria-label="Filtrar por assunto">
+                <Link href="/central" className={`filtro ${filtroArea ? "" : "ativo"}`}>
+                  Todos ({dia.itens.length})
+                </Link>
+                {Array.from(contagemPorArea, ([a, n]) => (
+                  <Link key={a} href={`/central?area=${encodeURIComponent(a)}`} className={`filtro ${filtroArea === a ? "ativo" : ""}`}>
+                    {ROTULO_AREA[a] ?? ROTULO_AREA.outro} ({n})
+                  </Link>
+                ))}
+              </nav>
+            )}
+
             <details className="resolvidos" open>
               <summary>🎯 Top 5 do dia ({top.length})</summary>
               {top.length === 0 ? (
@@ -392,12 +440,12 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
               </details>
             )}
 
-            {dia.resumo && (
-              <details className="resolvidos">
-                <summary>💰 Resumo financeiro</summary>
-                <div className="caixa-texto">{dia.resumo}</div>
+            {dia.resumos.map((r) => (
+              <details key={r.key} className="resolvidos">
+                <summary>{r.titulo}</summary>
+                <div className="caixa-texto">{r.detalhe}</div>
               </details>
-            )}
+            ))}
 
             {dia.tudoCerto.length > 0 && (
               <details className="resolvidos">
