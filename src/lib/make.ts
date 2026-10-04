@@ -56,10 +56,22 @@ async function chamar(path: string, token: string | undefined, init: RequestInit
 
 export async function listarRegistros(storeId: string): Promise<RegistroMake[]> {
   const token = process.env.MAKE_API_TOKEN || process.env.MAKE_API_TOKEN_WRITE;
-  const res = await chamar(`/data-stores/${storeId}/data?pg%5Blimit%5D=1000`, token);
-  const json = (await res.json()) as { records?: RegistroMake[] } | RegistroMake[];
-  const lista = Array.isArray(json) ? json : (json.records ?? []);
-  return lista.filter((r) => r && typeof r.key === "string");
+  const PAGINA = 100;
+  const todos: RegistroMake[] = [];
+  for (let offset = 0; offset < 1000; offset += PAGINA) {
+    let res: Response;
+    try {
+      res = await chamar(`/data-stores/${storeId}/data?pg%5Blimit%5D=${PAGINA}&pg%5Boffset%5D=${offset}`, token);
+    } catch (e) {
+      if (e instanceof MakeErro) throw new MakeErro(`${e.message} (data store ${storeId})`, e.tipo);
+      throw e;
+    }
+    const json = (await res.json()) as { records?: RegistroMake[] } | RegistroMake[];
+    const lista = (Array.isArray(json) ? json : (json.records ?? [])).filter((r) => r && typeof r.key === "string");
+    todos.push(...lista);
+    if (lista.length < PAGINA) break;
+  }
+  return todos;
 }
 
 /** Cria ou substitui o registro (PUT). */

@@ -94,8 +94,10 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       listarRegistros(STORES.status),
       listarRegistros(STORES.capturas),
     ]);
-  } catch {
-    return { ...base, erro: "Não consegui carregar os dados agora. Tente recarregar em instantes." };
+  } catch (e) {
+    // o detalhe (ex.: "Make respondeu 403") não contém segredos e ajuda a diagnosticar
+    const detalhe = e instanceof Error ? e.message : "erro desconhecido";
+    return { ...base, erro: `Não consegui carregar os dados agora. Detalhe: ${detalhe}` };
   }
 
   const statusPorChave = new Map(status.map((r) => [r.key, r.data]));
