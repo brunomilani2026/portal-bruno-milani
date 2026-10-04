@@ -357,21 +357,21 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
             )}
 
             {dia.resumo && (
-              <section>
-                <h2 className="subtitulo">💰 Resumo financeiro</h2>
+              <details className="recolhivel">
+                <summary>💰 Resumo financeiro</summary>
                 <div className="caixa-texto">{dia.resumo}</div>
-              </section>
+              </details>
             )}
 
             {dia.tudoCerto.length > 0 && (
-              <section>
-                <h2 className="subtitulo">✅ Está tudo certo</h2>
+              <details className="recolhivel">
+                <summary>✅ Está tudo certo ({dia.tudoCerto.length})</summary>
                 <ul className="tudo-certo">
                   {dia.tudoCerto.map((t) => (
                     <li key={t}>✓ {t}</li>
                   ))}
                 </ul>
-              </section>
+              </details>
             )}
 
             {dia.resolvidos.length > 0 && <Resolvidos lista={dia.resolvidos} ativo={dia.podeEscrever} />}
