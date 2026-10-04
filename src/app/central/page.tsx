@@ -378,16 +378,16 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
               <details className="resolvidos">
                 <summary>Outras pendências ({resto.length})</summary>
                 {gruposResto.map((g) => (
-                  <div key={g.area} className="grupo">
-                    <h3 className="grupo-titulo">
+                  <details key={g.area} className="resolvidos grupo">
+                    <summary>
                       {ROTULO_AREA[g.area] ?? ROTULO_AREA.outro} ({g.itens.length})
-                    </h3>
+                    </summary>
                     <ul className="lista-itens">
                       {g.itens.map((i) => (
                         <Linha key={i.key} item={i} ativo={dia.podeEscrever} />
                       ))}
                     </ul>
-                  </div>
+                  </details>
                 ))}
               </details>
             )}

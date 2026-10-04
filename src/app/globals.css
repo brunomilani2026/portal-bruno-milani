@@ -868,16 +868,14 @@ a.cartao:focus-visible {
 .pedidos a {
   text-decoration: underline;
 }
-/* Outras pendências agrupadas por assunto */
-.grupo {
-  margin-top: 6px;
+
+/* Outras pendências: cada assunto é uma seção recolhível (mesmo estilo das outras) */
+.resolvidos.grupo {
+  margin-top: 14px;
+  padding-left: 4px;
 }
 
-.grupo-titulo {
-  margin: 18px 0 8px;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #444b52;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--borda);
+.resolvidos.grupo > summary {
+  font-size: 1.05rem;
+  margin-bottom: 8px;
 }
