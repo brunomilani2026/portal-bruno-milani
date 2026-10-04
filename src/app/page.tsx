@@ -32,6 +32,7 @@ function Cartao({ s }: { s: SistemaApp }) {
 export default function Home() {
   const sistemas = listarSistemas();
   return (
+    <div className="tela-neutra">
     <main className="pagina">
       <header className="topo">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -52,5 +53,6 @@ export default function Home() {
         </form>
       </footer>
     </main>
+    </div>
   );
 }

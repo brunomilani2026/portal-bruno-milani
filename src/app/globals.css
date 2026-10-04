@@ -572,3 +572,56 @@ a.cartao:focus-visible {
 .tela-neutra .link-origem {
   color: #73162f;
 }
+/* Tema neutro também na página inicial e no login */
+.tela-neutra .logo {
+  filter: none;
+  mix-blend-mode: multiply;
+}
+
+.tela-neutra .cartao {
+  background: #ffffff;
+  border-color: var(--borda);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tela-neutra a.cartao:hover,
+.tela-neutra a.cartao:focus-visible {
+  background: #ffffff;
+  border-color: #73162f;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.tela-neutra .cartao.inativo {
+  opacity: 0.65;
+}
+
+.tela-neutra .caixa-login {
+  background: #ffffff;
+  border-color: var(--borda);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.tela-neutra .caixa-login input {
+  background: #ffffff;
+  color: #1f2328;
+  border-color: #c9cdd1;
+}
+
+.tela-neutra .caixa-login input:focus {
+  outline-color: #73162f;
+}
+
+.tela-neutra .erro {
+  color: #b3261e;
+}
+
+.tela-neutra .btn-sair {
+  background: #ffffff;
+  color: #444b52;
+  border-color: #c9cdd1;
+}
+
+.tela-neutra .btn-sair:hover {
+  border-color: #73162f;
+  color: #73162f;
+}
