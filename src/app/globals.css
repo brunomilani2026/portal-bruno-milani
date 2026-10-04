@@ -868,3 +868,16 @@ a.cartao:focus-visible {
 .pedidos a {
   text-decoration: underline;
 }
+/* Outras pendências agrupadas por assunto */
+.grupo {
+  margin-top: 6px;
+}
+
+.grupo-titulo {
+  margin: 18px 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #444b52;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--borda);
+}
