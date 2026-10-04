@@ -16,6 +16,15 @@ const AREAS = [
   ["cavaco", "Cavaco Cifrado"],
   ["outro", "Outro"],
 ] as const;
+const ROTULO_AREA: Record<string, string> = {
+  aulas: "🎓 Aulas",
+  financeiro: "💰 Financeiro",
+  cavaco: "🎼 Cavaco Cifrado",
+  shows: "🎤 Shows",
+  hotmart: "🛒 Hotmart",
+  pessoal: "👤 Pessoal",
+  outro: "📌 Outros assuntos",
+};
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function saudacao(hoje: string): string {
@@ -210,6 +219,14 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
   const criticos = dia.itens.filter((i) => nivelDoScore(i.score) === "critico").length;
   const top = dia.itens.slice(0, 5);
   const resto = dia.itens.slice(5);
+  // "Outras pendências" separadas por assunto (área); os grupos mais urgentes vêm primeiro
+  const porArea = new Map<string, typeof resto>();
+  for (const i of resto) {
+    const lista = porArea.get(i.area) ?? [];
+    lista.push(i);
+    porArea.set(i.area, lista);
+  }
+  const gruposResto = Array.from(porArea, ([area, itens]) => ({ area, itens })).sort((a, b) => b.itens[0].score - a.itens[0].score);
   const agendaHoje = dia.agenda.filter((a) => a.data === dia.hoje);
   const agendaAmanha = dia.agenda.filter((a) => a.data !== dia.hoje);
 
@@ -360,11 +377,18 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
             {resto.length > 0 && (
               <details className="resolvidos">
                 <summary>Outras pendências ({resto.length})</summary>
-                <ul className="lista-itens">
-                  {resto.map((i) => (
-                    <Linha key={i.key} item={i} ativo={dia.podeEscrever} />
-                  ))}
-                </ul>
+                {gruposResto.map((g) => (
+                  <div key={g.area} className="grupo">
+                    <h3 className="grupo-titulo">
+                      {ROTULO_AREA[g.area] ?? ROTULO_AREA.outro} ({g.itens.length})
+                    </h3>
+                    <ul className="lista-itens">
+                      {g.itens.map((i) => (
+                        <Linha key={i.key} item={i} ativo={dia.podeEscrever} />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </details>
             )}
 
