@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --vinho: #73162f;
   --vinho-escuro: #4b0f1f;
   --rosa: #eb98ae;
@@ -38,7 +38,7 @@ a {
   padding: 32px 16px 48px;
 }
 
-/* A logo é preta sobre fundo branco: inverte e usa "screen" para ficar branca sobre o vinho. */
+/* A logo Ã© preta sobre fundo branco: inverte e usa "screen" para ficar branca sobre o vinho. */
 .logo {
   display: block;
   width: min(320px, 72vw);
@@ -220,3 +220,91 @@ a.cartao:focus-visible {
   color: #ffd2dc;
   font-size: 0.95rem;
 }
+
+/* Briefing */
+.voltar {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: var(--texto-suave);
+}
+
+.voltar a:hover {
+  color: var(--branco);
+}
+
+.aviso {
+  padding: 16px 18px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto-suave);
+}
+
+.briefing {
+  padding: 22px 20px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.briefing-data {
+  margin: 0 0 6px;
+  font-family: var(--fonte-titulo), Georgia, serif;
+  font-size: 1.4rem;
+}
+
+.briefing .etiqueta {
+  display: inline-block;
+  margin: 0 8px 0 0;
+}
+
+.briefing-resumo {
+  margin: 10px 0 0;
+  color: var(--texto-suave);
+}
+
+.briefing-texto {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borda);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  font-size: 1.02rem;
+}
+
+.subtitulo {
+  margin: 28px 0 10px;
+  font-family: var(--fonte-titulo), Georgia, serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+}
+
+.historico {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.historico a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.historico a:hover {
+  border-color: var(--rosa);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mini {
+  font-size: 0.85rem;
+  color: var(--rosa);
+}
+

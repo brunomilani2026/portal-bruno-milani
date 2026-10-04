@@ -29,8 +29,8 @@ export function listarSistemas(): SistemaApp[] {
       nome: "Briefing",
       descricao: "O resumo diário: o que exige a sua atenção.",
       icone: "📬",
-      href: process.env.URL_BRIEFING ?? "",
-      situacao: "em-breve",
+      href: process.env.URL_BRIEFING || "/briefing",
+      situacao: "ativo",
     },
     {
       id: "partitura",
