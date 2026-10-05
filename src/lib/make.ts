@@ -82,7 +82,8 @@ export async function listarRegistros(storeId: string): Promise<RegistroMake[]> 
 export async function gravarRegistro(storeId: string, key: string, data: Record<string, unknown>): Promise<void> {
   const token = process.env.MAKE_API_TOKEN_WRITE;
   const put = () =>
-    chamar(`/data-stores/${storeId}/data/${encodeURIComponent(key)}`, token, { method: "PUT", body: JSON.stringify({ data }) });
+    // na API do Make, o PUT recebe os campos do registro DIRETAMENTE (sem o envelope { data })
+    chamar(`/data-stores/${storeId}/data/${encodeURIComponent(key)}`, token, { method: "PUT", body: JSON.stringify(data) });
   const post = () => chamar(`/data-stores/${storeId}/data`, token, { method: "POST", body: JSON.stringify({ key, data }) });
 
   try {
@@ -99,7 +100,8 @@ export async function gravarRegistro(storeId: string, key: string, data: Record<
 
 /** Apaga registros pelas chaves (DELETE com corpo). */
 export async function apagarRegistros(storeId: string, keys: string[]): Promise<void> {
-  await chamar(`/data-stores/${storeId}/data`, process.env.MAKE_API_TOKEN_WRITE, {
+  // a API do Make exige confirmed=true para apagar registros
+  await chamar(`/data-stores/${storeId}/data?confirmed=true`, process.env.MAKE_API_TOKEN_WRITE, {
     method: "DELETE",
     body: JSON.stringify({ keys }),
   });
