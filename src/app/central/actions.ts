@@ -26,7 +26,9 @@ async function salvarStatus(f: FormData, mudar: (atual: Dados) => Dados): Promis
   const key = str(f, "key");
   if (!key || !temTokenEscrita()) return false;
   try {
-    const atual = await statusAtual(key);
+    const bruto = await statusAtual(key);
+    // o Make devolve campos vazios como null; ao regravar, trocamos por valores vazios válidos
+    const atual = Object.fromEntries(Object.entries(bruto).map(([k, v]) => [k, v === null ? (k === "prioridade" ? 0 : "") : v]));
     const titulo = str(f, "titulo");
     const area = str(f, "area");
     await gravarRegistro(STORES.status, key, {
