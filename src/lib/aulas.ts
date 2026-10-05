@@ -205,6 +205,22 @@ export async function carregarAulas(): Promise<DadosAulas> {
       // aula que já passou há mais de 1 dia não serve mais (o assistente atualiza a cada execução)
       if (!Number.isNaN(t) && t > agora - 86_400_000) proximas[chaveAluno(txt(r.data.aluno) || r.key.slice(8))] = iso;
     }
+    // A próxima aula de CADA aluno vem da cópia do Google Calendar (feita pelo Make a cada 15 min, até 14 dias à frente);
+    // assim qualquer aluno novo anotado já aparece em "Deixar pronto", sem depender do assistente.
+    const snap = tarefas.find((r) => r.key === "agenda:snapshot");
+    const daAgenda: Record<string, string> = {};
+    for (const linha of txt(snap?.data.detalhe).split(";;")) {
+      const [data, hora, titulo] = linha.split("|");
+      if (!data || !hora || !titulo || /show/i.test(titulo)) continue;
+      const iso = `${data}T${hora}:00-03:00`;
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t) || t < agora - 3_600_000) continue; // aula que já passou
+      const k = chaveAluno(titulo);
+      if (!k) continue;
+      if (!daAgenda[k] || t < new Date(daAgenda[k]).getTime()) daAgenda[k] = iso;
+    }
+    Object.assign(proximas, daAgenda);
+
     const lista = tarefas.find((r) => r.key === "lista:alunos");
     const doAssistente = txt(lista?.data.detalhe)
       .split("\n")
