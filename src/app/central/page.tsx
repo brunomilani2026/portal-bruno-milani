@@ -313,6 +313,9 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
             {dia.agenda.length > 0 && (
               <section>
                 <h2 className="subtitulo">📅 Agenda</h2>
+                {dia.agendaDesatualizada && (
+                  <p className="item-meta">⚠️ A agenda do Google Calendar não é atualizada há mais de 45 minutos; pode haver aulas canceladas ou novas que ainda não aparecem.</p>
+                )}
                 <div className="agenda">
                   {agendaHoje.length > 0 && (
                     <div>

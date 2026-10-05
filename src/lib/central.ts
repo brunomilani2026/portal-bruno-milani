@@ -58,6 +58,8 @@ export type MeuDia = {
   concluidosHoje: number;
   /** true quando a última atualização do assistente tem mais de 20 horas */
   desatualizado: boolean;
+  /** true quando a cópia da agenda do Google Calendar (feita pelo Make a cada 15 min) tem mais de 45 minutos */
+  agendaDesatualizada: boolean;
 };
 
 export function hojeSP(): string {
@@ -169,6 +171,7 @@ export async function carregarMeuDia(): Promise<MeuDia> {
     resolvidos: [],
     concluidosHoje: 0,
     desatualizado: false,
+    agendaDesatualizada: false,
   };
 
   if (!temTokenLeitura() && process.env.NODE_ENV !== "production") {
@@ -227,6 +230,9 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   const aguardando: ItemCentral[] = [];
   const agenda: ItemCentral[] = [];
   const resumos: MeuDia["resumos"] = [];
+  const agendaLegada: ItemCentral[] = [];
+  const snapshotItens: ItemCentral[] = [];
+  let snapshotEm = "";
   let plano: string[] = [];
   let tudoCerto: string[] = [];
   let atualizadoEm = "";
@@ -249,6 +255,26 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       continue;
     }
     if (tipo === "alunos") continue; // lista de nomes usada só pela página de aulas
+    if (tipo === "agendasnap") {
+      // cópia da agenda do Google Calendar (hoje e amanhã), regravada pelo Make a cada 15 min: "data|hora|titulo|local|id" separados por ";;"
+      snapshotEm = txt(d.atualizado_em);
+      for (const linha of txt(d.detalhe).split(";;")) {
+        const [data, hora, titulo, local, id] = linha.split("|");
+        if (!data || !hora || !titulo) continue;
+        if (data !== hoje && data !== amanha) continue;
+        snapshotItens.push({
+          ...vazio(`agenda:ev:${id || `${data}-${hora}-${titulo}`}`),
+          titulo: titulo.trim(),
+          detalhe: (local ?? "").trim() || "Aula",
+          area: /show/i.test(titulo) ? "shows" : "aulas",
+          origem: "app",
+          data,
+          hora,
+          atualizadoEm: snapshotEm,
+        });
+      }
+      continue;
+    }
 
     const st = statusPorChave.get(r.key);
     const item: ItemCentral = {
@@ -286,7 +312,7 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       const horaNoDetalhe = item.detalhe.match(/(\d{1,2}):(\d{2})/);
       if (!item.hora && horaNoDetalhe) item.hora = `${horaNoDetalhe[1].padStart(2, "0")}:${horaNoDetalhe[2]}`;
       item.detalhe = item.detalhe.replace(/\s*[·\-—]?\s*\d{1,2}:\d{2}\s*$/, "").trim();
-      if (item.data === hoje || item.data === amanha) agenda.push(item);
+      if (item.data === hoje || item.data === amanha) agendaLegada.push(item);
       continue;
     }
     if (oculto(st, hoje)) continue;
@@ -314,6 +340,9 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       anotacao: true,
     });
   }
+
+  // A agenda vem da cópia do Google Calendar; só se ela não existir usa registros antigos do assistente.
+  agenda.push(...(snapshotEm ? snapshotItens : agendaLegada));
 
   // Remove duplicatas deixadas por execuções diferentes do assistente:
   // - agenda: mesma data + hora + primeiro nome (ex.: "Julio" e "Julio 16" às 14:30);
@@ -360,5 +389,8 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   const idadeMs = atualizadoEm ? Date.now() - Date.parse(atualizadoEm) : 0;
   const desatualizado = Boolean(atualizadoEm) && Number.isFinite(idadeMs) && idadeMs > 20 * 3_600_000;
 
-  return { ...base, ok: true, itens, aguardando, agenda, resumos, plano, tudoCerto, resolvidos, concluidosHoje, atualizadoEm, desatualizado };
+  const idadeAgenda = snapshotEm ? Date.now() - Date.parse(snapshotEm) : 0;
+  const agendaDesatualizada = Boolean(snapshotEm) && Number.isFinite(idadeAgenda) && idadeAgenda > 45 * 60_000;
+
+  return { ...base, ok: true, itens, aguardando, agenda, resumos, plano, tudoCerto, resolvidos, concluidosHoje, atualizadoEm, desatualizado, agendaDesatualizada };
 }
