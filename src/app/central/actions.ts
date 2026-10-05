@@ -48,10 +48,15 @@ async function salvarStatus(f: FormData, mudar: (atual: Dados) => Dados): Promis
   }
 }
 
-function terminar(ok: boolean): never {
+/**
+ * Sucesso: só revalida os dados, SEM redirecionar. Assim a página é atualizada no lugar:
+ * a rolagem e as seções abertas/fechadas continuam como estavam.
+ * Falha: volta para a página com um aviso.
+ */
+function terminar(ok: boolean): void {
   if (ok) {
     revalidatePath("/central");
-    redirect("/central");
+    return;
   }
   redirect("/central?erro=acao");
 }
