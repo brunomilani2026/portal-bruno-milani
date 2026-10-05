@@ -28,6 +28,8 @@ export type ItemCentral = {
   hora: string;
   /** só agenda de aulas: pedidos pendentes do aluno (música/assunto) */
   pedidos: string[];
+  /** última gravação do assistente (usada para escolher o registro mais novo em duplicatas) */
+  atualizadoEm: string;
   anotacao: boolean;
 };
 
@@ -147,7 +149,7 @@ function oculto(status: Record<string, unknown> | undefined, hoje: string): bool
 function vazio(key: string): ItemCentral {
   return {
     key, titulo: key, detalhe: "", area: "outro", origem: "", prazo: "", valor: 0, score: 0, scoreBase: 0, ajuste: 0, porque: "",
-    href: "", whatsapp: "", nota: "", quem: "", ultimoContato: "", lembrarEm: "", data: "", hora: "", pedidos: [], anotacao: false,
+    href: "", whatsapp: "", nota: "", quem: "", ultimoContato: "", lembrarEm: "", data: "", hora: "", pedidos: [], atualizadoEm: "", anotacao: false,
   };
 }
 
@@ -266,6 +268,7 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       lembrarEm: txt(d.lembrar_em),
       data: txt(d.data),
       hora: txt(d.hora),
+      atualizadoEm: txt(d.atualizado_em),
       nota: st ? txt(st.nota) : "",
       ajuste: st ? num(st.prioridade) : 0,
     };
@@ -311,6 +314,25 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       anotacao: true,
     });
   }
+
+  // Remove duplicatas deixadas por execuções diferentes do assistente:
+  // - agenda: mesma data + hora + primeiro nome (ex.: "Julio" e "Julio 16" às 14:30);
+  // - saldo baixo: mesma conta em dias diferentes. Fica sempre o registro mais recente.
+  const unicos = <T extends ItemCentral>(lista: T[], chave: (i: T) => string): T[] => {
+    const m = new Map<string, T>();
+    for (const i of lista) {
+      const k = chave(i);
+      const outro = m.get(k);
+      if (!outro || i.atualizadoEm > outro.atualizadoEm) m.set(k, i);
+    }
+    return Array.from(m.values());
+  };
+  const itensUnicos = unicos(itens, (i) => (i.key.startsWith("saldo-baixo:") ? `saldo:${i.key.split(":")[1]}` : i.key));
+  const agendaUnica = unicos(agenda, (a) => `${a.data}|${a.hora}|${a.area === "aulas" ? chaveAluno(a.titulo) : a.titulo.toLowerCase()}`);
+  itens.length = 0;
+  itens.push(...itensUnicos);
+  agenda.length = 0;
+  agenda.push(...agendaUnica);
 
   itens.sort((a, b) => b.score - a.score);
   aguardando.sort((a, b) => ((a.lembrarEm || "9999") < (b.lembrarEm || "9999") ? -1 : 1));
