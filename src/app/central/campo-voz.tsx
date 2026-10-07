@@ -51,8 +51,15 @@ export default function CampoVoz({ disabled, placeholder }: { disabled?: boolean
     try {
       const fluxo = await navigator.mediaDevices.getUserMedia({ audio: true });
       fluxo.getTracks().forEach((t) => t.stop());
-    } catch {
-      setAviso(MENSAGENS["not-allowed"]);
+    } catch (e) {
+      const nome = e instanceof DOMException ? e.name : "";
+      setAviso(
+        nome === "NotFoundError" || nome === "OverconstrainedError"
+          ? "O Chrome não encontrou nenhum microfone neste computador. Conecte um microfone/fone (ou ative-o em Configurações do Windows → Som → Entrada) e tente de novo."
+          : nome === "NotReadableError" || nome === "AbortError"
+            ? "O microfone está em uso por outro programa ou o Windows está bloqueando o acesso (Configurações → Privacidade → Microfone). Feche o outro programa e tente de novo."
+            : MENSAGENS["not-allowed"],
+      );
       return;
     }
 
