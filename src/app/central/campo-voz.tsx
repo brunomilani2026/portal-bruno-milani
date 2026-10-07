@@ -6,12 +6,28 @@ type Reconhecedor = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
+  onstart: (() => void) | null;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
   start: () => void;
   stop: () => void;
 };
+
+type Construtor = new () => Reconhecedor;
+
+const MENSAGENS: Record<string, string> = {
+  "not-allowed": "O microfone está bloqueado. Clique no cadeado ao lado do endereço, permita o Microfone e recarregue a página.",
+  "service-not-allowed": "O navegador não liberou o reconhecimento de voz. Permita o Microfone no cadeado do endereço e recarregue.",
+  "no-speech": "Não ouvi nada. Clique no 🎤 e fale logo em seguida.",
+  "audio-capture": "Não encontrei nenhum microfone ligado neste computador.",
+  network: "Sem conexão com o serviço de voz do navegador. Verifique a internet e tente de novo.",
+};
+
+function classeVoz(): Construtor | undefined {
+  const w = window as unknown as { SpeechRecognition?: Construtor; webkitSpeechRecognition?: Construtor };
+  return w.SpeechRecognition || w.webkitSpeechRecognition;
+}
 
 /** Campo de texto da anotação com botão de microfone (ditado em português; funciona no Chrome/Edge/Safari). */
 export default function CampoVoz({ disabled, placeholder }: { disabled?: boolean; placeholder?: string }) {
@@ -19,33 +35,55 @@ export default function CampoVoz({ disabled, placeholder }: { disabled?: boolean
   const rec = useRef<Reconhecedor | null>(null);
   const [ouvindo, setOuvindo] = useState(false);
   const [suportado, setSuportado] = useState(false);
+  const [aviso, setAviso] = useState("");
 
   useEffect(() => {
-    const w = window as unknown as { SpeechRecognition?: new () => Reconhecedor; webkitSpeechRecognition?: new () => Reconhecedor };
-    setSuportado(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    setSuportado(Boolean(classeVoz()));
     return () => rec.current?.stop();
   }, []);
 
-  function alternar() {
+  async function alternar() {
     if (ouvindo) return rec.current?.stop();
-    const w = window as unknown as { SpeechRecognition?: new () => Reconhecedor; webkitSpeechRecognition?: new () => Reconhecedor };
-    const Classe = w.SpeechRecognition || w.webkitSpeechRecognition;
+    const Classe = classeVoz();
     if (!Classe || !campo.current) return;
+
+    // pede a permissão do microfone de forma explícita (o reconhecimento sozinho falha em silêncio em alguns casos)
+    try {
+      const fluxo = await navigator.mediaDevices.getUserMedia({ audio: true });
+      fluxo.getTracks().forEach((t) => t.stop());
+    } catch {
+      setAviso(MENSAGENS["not-allowed"]);
+      return;
+    }
+
     const base = campo.current.value.trim();
     const r = new Classe();
     r.lang = "pt-BR";
     r.interimResults = true;
     r.continuous = false;
+    r.onstart = () => setAviso("Ouvindo… pode falar.");
     r.onresult = (e) => {
       let falado = "";
       for (let i = 0; i < e.results.length; i++) falado += e.results[i][0].transcript;
       if (campo.current) campo.current.value = (base ? `${base} ` : "") + falado.trim();
     };
-    r.onend = () => setOuvindo(false);
-    r.onerror = () => setOuvindo(false);
+    r.onend = () => {
+      setOuvindo(false);
+      setAviso((a) => (a.startsWith("Ouvindo") ? "" : a));
+    };
+    r.onerror = (e) => {
+      setOuvindo(false);
+      setAviso(MENSAGENS[e.error ?? ""] ?? `Não consegui ouvir (${e.error ?? "erro desconhecido"}).`);
+    };
     rec.current = r;
     setOuvindo(true);
-    r.start();
+    setAviso("");
+    try {
+      r.start();
+    } catch {
+      setOuvindo(false);
+      setAviso("Não consegui iniciar o microfone. Recarregue a página e tente de novo.");
+    }
   }
 
   return (
@@ -56,6 +94,7 @@ export default function CampoVoz({ disabled, placeholder }: { disabled?: boolean
           {ouvindo ? "⏹" : "🎤"}
         </button>
       )}
+      {aviso && <small className="aviso-voz">{aviso}</small>}
     </span>
   );
 }
