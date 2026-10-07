@@ -1115,3 +1115,35 @@ a.cartao:focus-visible {
   font-size: 0.85rem;
   color: #5b6168;
 }
+
+.campo-voz {
+  flex: 1 1 220px;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.campo-voz input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.btn-mic {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #c9cdd1;
+  background: #ffffff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.btn-mic.ouvindo {
+  background: #fde8e8;
+  border-color: #c0392b;
+  animation: pulsa 1s infinite;
+}
+
+@keyframes pulsa {
+  50% { opacity: 0.55; }
+}

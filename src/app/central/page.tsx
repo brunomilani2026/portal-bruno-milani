@@ -2,6 +2,7 @@ import Link from "next/link";
 import { carregarMeuDia, nivelDoScore, type ItemCentral, type Resolvido } from "@/lib/central";
 import { acaoWhatsApp } from "@/lib/whatsapp";
 import { linkFinanceiro } from "@/lib/links";
+import CampoVoz from "./campo-voz";
 import { adiar, adiarAte, ajustarPrioridade, anotar, apagarAnotacao, concluir, editarAnotacao, ignorar, reabrir, salvarNota } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -298,7 +299,7 @@ export default async function CentralPage({ searchParams }: { searchParams: Prom
             </div>
 
             <form action={anotar} className="captura">
-              <input name="texto" required maxLength={500} placeholder="Anotar: “me lembra de…”, “preciso cobrar…”" disabled={!dia.podeEscrever} />
+              <CampoVoz placeholder="Anotar: “me lembra de…”, “preciso cobrar…”" disabled={!dia.podeEscrever} />
               <select name="area" defaultValue="pessoal" aria-label="Área" disabled={!dia.podeEscrever}>
                 {AREAS.map(([v, r]) => (
                   <option key={v} value={v}>
