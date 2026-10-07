@@ -1147,3 +1147,12 @@ a.cartao:focus-visible {
 @keyframes pulsa {
   50% { opacity: 0.55; }
 }
+.campo-voz {
+  flex-wrap: wrap;
+}
+
+.aviso-voz {
+  flex: 1 0 100%;
+  color: #8a1c1c;
+  font-size: 13px;
+}
