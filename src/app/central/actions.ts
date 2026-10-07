@@ -129,7 +129,8 @@ export async function editarAnotacao(f: FormData) {
     const atual = todos.find((r) => r.key === id)?.data ?? {};
     await gravarRegistro(STORES.capturas, id, {
       texto,
-      area: areaValida(str(f, "area") || "pessoal"),
+      // o formulário tem um "area" oculto (área antiga) e o seletor (nova); vale o último
+      area: areaValida(String(f.getAll("area").at(-1) ?? "").trim() || "pessoal"),
       prazo: /^\d{4}-\d{2}-\d{2}$/.test(prazoBruto) ? prazoBruto : "",
       criado_em: typeof atual.criado_em === "string" ? atual.criado_em : new Date().toISOString(),
     });
