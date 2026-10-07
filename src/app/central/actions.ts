@@ -6,7 +6,7 @@ import { hojeSP, somaDias } from "@/lib/central";
 import { apagarRegistros, criarRegistro, gravarRegistro, listarRegistros, STORES, temTokenEscrita } from "@/lib/make";
 
 type Dados = Record<string, unknown>;
-const AREAS = ["aulas", "shows", "hotmart", "financeiro", "cavaco", "pessoal", "outro"];
+const AREAS = ["aulas", "shows", "hotmart", "financeiro", "cavaco", "pessoal", "claude", "outro"];
 
 function str(f: FormData, nome: string): string {
   return String(f.get(nome) ?? "").trim();

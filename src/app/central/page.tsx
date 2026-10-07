@@ -15,6 +15,7 @@ const AREAS = [
   ["hotmart", "Hotmart"],
   ["financeiro", "Financeiro"],
   ["cavaco", "Cavaco Cifrado"],
+  ["claude", "Claude (pedir ao assistente)"],
   ["outro", "Outro"],
 ] as const;
 const ROTULO_AREA: Record<string, string> = {
@@ -24,6 +25,7 @@ const ROTULO_AREA: Record<string, string> = {
   shows: "🎤 Shows",
   hotmart: "🛒 Hotmart",
   pessoal: "👤 Pessoal",
+  claude: "🤖 Para o Claude",
   outro: "📌 Outros assuntos",
 };
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
