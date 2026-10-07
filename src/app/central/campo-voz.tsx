@@ -58,7 +58,7 @@ export default function CampoVoz({ disabled, placeholder }: { disabled?: boolean
           ? "O Chrome não encontrou nenhum microfone neste computador. Conecte um microfone/fone (ou ative-o em Configurações do Windows → Som → Entrada) e tente de novo."
           : nome === "NotReadableError" || nome === "AbortError"
             ? "O microfone está em uso por outro programa ou o Windows está bloqueando o acesso (Configurações → Privacidade → Microfone). Feche o outro programa e tente de novo."
-            : MENSAGENS["not-allowed"],
+            : `${MENSAGENS["not-allowed"]} [mic: ${nome || "?"}]`,
       );
       return;
     }
@@ -80,7 +80,7 @@ export default function CampoVoz({ disabled, placeholder }: { disabled?: boolean
     };
     r.onerror = (e) => {
       setOuvindo(false);
-      setAviso(MENSAGENS[e.error ?? ""] ?? `Não consegui ouvir (${e.error ?? "erro desconhecido"}).`);
+      setAviso((MENSAGENS[e.error ?? ""] ?? "Não consegui ouvir.") + ` [voz: ${e.error ?? "?"}]`);
     };
     rec.current = r;
     setOuvindo(true);
