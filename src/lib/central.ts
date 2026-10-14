@@ -1,4 +1,5 @@
 import { chaveAluno, listarAnotacoes } from "./aulas";
+import { ehCompromissoPessoal } from "./agenda";
 import { listarRegistros, STORES, temTokenEscrita, temTokenLeitura, type RegistroMake } from "./make";
 
 export type Nivel = "critico" | "importante" | "aguardar";
@@ -269,8 +270,8 @@ export async function carregarMeuDia(): Promise<MeuDia> {
         snapshotItens.push({
           ...vazio(`agenda:ev:${id || `${data}-${hora}-${titulo}`}`),
           titulo: titulo.trim(),
-          detalhe: (local ?? "").trim() || "Aula",
-          area: /show/i.test(titulo) ? "shows" : "aulas",
+          detalhe: (local ?? "").trim() || (ehCompromissoPessoal(titulo) ? "Compromisso" : "Aula"),
+          area: /show/i.test(titulo) ? "shows" : ehCompromissoPessoal(titulo) ? "pessoal" : "aulas",
           origem: "app",
           data,
           hora,

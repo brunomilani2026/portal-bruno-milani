@@ -1,3 +1,4 @@
+import { ehCompromissoPessoal } from "./agenda";
 import { listarRegistros, STORES, temTokenEscrita, temTokenLeitura } from "./make";
 
 export const TIPOS = [
@@ -211,7 +212,7 @@ export async function carregarAulas(): Promise<DadosAulas> {
     const daAgenda: Record<string, string> = {};
     for (const linha of txt(snap?.data.detalhe).split(";;")) {
       const [data, hora, titulo] = linha.split("|");
-      if (!data || !hora || !titulo || /show/i.test(titulo)) continue;
+      if (!data || !hora || !titulo || /show/i.test(titulo) || ehCompromissoPessoal(titulo)) continue;
       const iso = `${data}T${hora}:00-03:00`;
       const t = new Date(iso).getTime();
       if (Number.isNaN(t) || t < agora - 3_600_000) continue; // aula que já passou
