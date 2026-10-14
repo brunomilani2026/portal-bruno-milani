@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { chaveAluno } from "@/lib/aulas";
 import { hojeSP, somaDias } from "@/lib/central";
 import { apagarRegistros, criarRegistro, gravarRegistro, listarRegistros, STORES, temTokenEscrita } from "@/lib/make";
 
@@ -63,8 +64,32 @@ function terminar(ok: boolean): void {
   redirect("/central?erro=acao");
 }
 
+/** Concluir "Preparar aula do Fulano" no Meu Dia também marca como feitas as anotações pendentes do aluno em "Anotações de aulas". */
+async function concluirAnotacoesDoAluno(chave: string): Promise<void> {
+  const nome = chave.split(":")[1] ?? "";
+  const k = chaveAluno(nome);
+  if (!k) return;
+  const todos = await listarRegistros(STORES.aulas);
+  const agora = new Date().toISOString();
+  for (const r of todos) {
+    if (r.key.startsWith("proxima:") || r.key.startsWith("lista:")) continue;
+    const d = r.data;
+    if (d.status !== "pendente" || typeof d.aluno !== "string" || chaveAluno(d.aluno) !== k) continue;
+    await gravarRegistro(STORES.aulas, r.key, { ...d, status: "feito", feito_em: agora, atualizado_em: agora });
+  }
+}
+
 export async function concluir(f: FormData) {
-  terminar(await salvarStatus(f, () => ({ status: "concluida", adiada_ate: "" })));
+  const ok = await salvarStatus(f, () => ({ status: "concluida", adiada_ate: "" }));
+  const key = str(f, "key");
+  if (ok && key.startsWith("aula-preparar:")) {
+    try {
+      await concluirAnotacoesDoAluno(key);
+    } catch {
+      // o Meu Dia já foi concluído; se não deu para marcar as anotações, o aluno continua com o pedido pendente na página de aulas
+    }
+  }
+  terminar(ok);
 }
 
 export async function adiar(f: FormData) {

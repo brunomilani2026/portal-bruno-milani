@@ -211,12 +211,16 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   let status: RegistroMake[];
   let capturas: RegistroMake[];
   let pedidosAulas: Awaited<ReturnType<typeof listarAnotacoes>> = [];
+  let anotacoesCarregadas = true;
   try {
     [tarefas, status, capturas, pedidosAulas] = await Promise.all([
       listarRegistros(STORES.tarefas),
       listarRegistros(STORES.status),
       listarRegistros(STORES.capturas),
-      listarAnotacoes().catch(() => []),
+      listarAnotacoes().catch(() => {
+        anotacoesCarregadas = false;
+        return [];
+      }),
     ]);
   } catch (e) {
     // o detalhe (ex.: "Make respondeu 403") não contém segredos e ajuda a diagnosticar
@@ -316,6 +320,11 @@ export async function carregarMeuDia(): Promise<MeuDia> {
       continue;
     }
     if (oculto(st, hoje)) continue;
+    // "Preparar aula do Fulano": some quando todas as anotações do aluno em "Anotações de aulas" já foram marcadas como feitas
+    if (anotacoesCarregadas && r.key.startsWith("aula-preparar:")) {
+      const k = chaveAluno(r.key.split(":")[1] ?? "");
+      if (k && !pedidosAulas.some((p) => p.status === "pendente" && chaveAluno(p.aluno) === k)) continue;
+    }
     (tipo === "aguardando" ? aguardando : itens).push(item);
   }
 
