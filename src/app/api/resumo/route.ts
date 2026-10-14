@@ -45,8 +45,16 @@ export async function GET(req: Request) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")}</div>`;
 
+  // "enviar": só é verdadeiro se o assistente NÃO atualizou o Meu Dia hoje (ou seja, o briefing completo provavelmente não rodou).
+  // ?forcar=1 ignora isso (usado em testes).
+  const forcar = new URL(req.url).searchParams.get("forcar") === "1";
+  const atualizadoHoje = dia.atualizadoEm
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(dia.atualizadoEm)) === dia.hoje
+    : false;
+
   return Response.json({
     ok: true,
+    enviar: forcar || !atualizadoHoje,
     hoje: dia.hoje,
     urgentes: criticos.length,
     importantes: importantes.length,
