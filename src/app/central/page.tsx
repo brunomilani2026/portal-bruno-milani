@@ -56,6 +56,13 @@ function Ocultos({ item }: { item: { key: string; titulo: string; area: string }
   );
 }
 
+/** Texto do botão que leva ao app financeiro para dar baixa (a baixa automática tira o item daqui). */
+function rotuloBaixa(key: string): string {
+  if (key.startsWith("aluno-atraso:") || key.startsWith("show-atrasado:")) return "💰 Recebi — dar baixa";
+  if (key.startsWith("despesa:")) return "💸 Paguei — dar baixa";
+  return "";
+}
+
 function Acoes({ item, ativo }: { item: ItemCentral; ativo: boolean }) {
   const wa = acaoWhatsApp(item);
   return (
@@ -87,6 +94,11 @@ function Acoes({ item, ativo }: { item: ItemCentral; ativo: boolean }) {
             Ignorar
           </button>
         </form>
+        {rotuloBaixa(item.key) && linkFinanceiro(item.key) && (
+          <a className="btn-acao baixa" href={linkFinanceiro(item.key)} target="_blank" rel="noopener noreferrer" title="Abre o app financeiro; ao registrar lá, este item sai do Meu Dia sozinho">
+            {rotuloBaixa(item.key)}
+          </a>
+        )}
         {wa && "href" in wa && (
           <a className="btn-acao whats" href={wa.href} target="_blank" rel="noopener noreferrer">
             {wa.rotulo}

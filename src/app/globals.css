@@ -1156,3 +1156,10 @@ a.cartao:focus-visible {
   color: #8a1c1c;
   font-size: 13px;
 }
+
+.btn-acao.baixa {
+  background: #e7f4ea;
+  border-color: #3f8f55;
+  color: #1f5a30;
+  text-decoration: none;
+}
