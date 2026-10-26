@@ -74,11 +74,11 @@ export function listarSistemas(): SistemaApp[] {
     },
     {
       id: "crm",
-      nome: "CRM de Vendas",
-      descricao: "Leads, propostas e fechamentos.",
+      nome: "CRM Hotmart",
+      descricao: "Compradores, leads e vendas da Hotmart.",
       icone: "🤝",
-      href: process.env.URL_CRM ?? "",
-      situacao: "em-breve",
+      href: process.env.URL_CRM || "https://gestao-hotmart.vercel.app/",
+      situacao: "ativo",
     },
   ];
 }
