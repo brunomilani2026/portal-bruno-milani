@@ -1,4 +1,4 @@
-import { chaveAluno, listarAnotacoes } from "./aulas";
+import { chaveAluno, chaveDaAula, listarAnotacoes, listarPlanos, mesmoAluno, planoDoAluno, type Plano } from "./aulas";
 import { ehCompromissoPessoal } from "./agenda";
 import { listarRegistros, STORES, temTokenEscrita, temTokenLeitura, type RegistroMake } from "./make";
 
@@ -213,8 +213,9 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   let capturas: RegistroMake[];
   let pedidosAulas: Awaited<ReturnType<typeof listarAnotacoes>> = [];
   let anotacoesCarregadas = true;
+  let planos: Record<string, Plano> = {};
   try {
-    [tarefas, status, capturas, pedidosAulas] = await Promise.all([
+    [tarefas, status, capturas, pedidosAulas, planos] = await Promise.all([
       listarRegistros(STORES.tarefas),
       listarRegistros(STORES.status),
       listarRegistros(STORES.capturas),
@@ -222,6 +223,7 @@ export async function carregarMeuDia(): Promise<MeuDia> {
         anotacoesCarregadas = false;
         return [];
       }),
+      listarPlanos().catch(() => ({}) as Record<string, Plano>),
     ]);
   } catch (e) {
     // o detalhe (ex.: "Make respondeu 403") não contém segredos e ajuda a diagnosticar
@@ -378,9 +380,13 @@ export async function carregarMeuDia(): Promise<MeuDia> {
   agenda.sort((a, b) => (a.data + a.hora < b.data + b.hora ? -1 : 1));
   for (const a of agenda) {
     if (a.area !== "aulas") continue;
-    const k = chaveAluno(a.titulo);
+    const k = chaveDaAula(a.titulo, a.data, a.hora); // separa os dois Diego e os dois Marcos
     if (!k) continue;
-    a.pedidos = pedidosAulas.filter((p) => p.status === "pendente" && chaveAluno(p.aluno) === k).map((p) => p.assunto);
+    a.pedidos = pedidosAulas.filter((p) => p.status === "pendente" && mesmoAluno(p.aluno, k)).map((p) => p.assunto);
+    // plano do e-mail "Tarefa para…" do Agenda Pro: última aula + assunto da próxima aula
+    const plano = planoDoAluno(planos, k);
+    if (plano?.ultima) a.pedidos.push(`Última aula: ${plano.ultima.length > 140 ? `${plano.ultima.slice(0, 137)}…` : plano.ultima}`);
+    if (plano?.proxima) a.pedidos.push(`Próxima aula: ${plano.proxima}`);
   }
 
   const resolvidos: Resolvido[] = [];

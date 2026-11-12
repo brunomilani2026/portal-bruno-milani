@@ -248,6 +248,12 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
     .map(([nome, itens]): [string, Anotacao[], string] => [nome, itens, proximaDoAluno(dados.proximas, nome)])
     .filter(([, , iso]) => iso && diasAte(iso) >= 0 && diasAte(iso) <= 7);
 
+  // Plano de cada aluno (e-mail "Tarefa para…" do Agenda Pro): última aula + assunto da próxima aula, na ordem da próxima aula
+  const planos = Object.values(dados.planos)
+    .map((p): [typeof p, string] => [p, proximaDoAluno(dados.proximas, p.aluno)])
+    .filter(([p]) => p.ultima || p.proxima)
+    .sort(([pa, a], [pb, b]) => (a && b ? (a < b ? -1 : a > b ? 1 : 0) : a ? -1 : b ? 1 : pa.aluno.localeCompare(pb.aluno, "pt-BR")));
+
   const antigas = todasPendentes.filter((a) => diasDesde(a.criadoEm) > DIAS_ANTIGO).length;
   const altas = todasPendentes.filter((a) => a.prioridade === "alta").length;
   const alunosComPedido = new Set(todasPendentes.map((a) => chaveCompleta(a.aluno))).size;
@@ -304,6 +310,41 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                         <strong>{nome}</strong>
                       </Link>{" "}
                       — {rotuloAula(iso)} <span className="prazo-aula">({textoPrazo(diasAte(iso))})</span>: {itens.map((i) => i.assunto).join(" · ")}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {planos.length > 0 && (
+              <section className="preparar" aria-label="Plano das aulas">
+                <h2 className="subtitulo">📋 Plano das próximas aulas</h2>
+                <ul>
+                  {planos.map(([p, iso]) => (
+                    <li key={p.aluno}>
+                      <Link href={href({ aluno: p.aluno, ordem })}>
+                        <strong>{p.aluno}</strong>
+                      </Link>
+                      {iso && (
+                        <>
+                          {" "}
+                          — {rotuloAula(iso)} <span className="prazo-aula">({textoPrazo(diasAte(iso))})</span>
+                        </>
+                      )}
+                      {p.ultima && (
+                        <>
+                          <br />
+                          <span className="item-meta">Última aula: {p.ultima}</span>
+                        </>
+                      )}
+                      {p.proxima && (
+                        <>
+                          <br />
+                          <span className="item-meta">
+                            <strong>Próxima aula:</strong> {p.proxima}
+                          </span>
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>

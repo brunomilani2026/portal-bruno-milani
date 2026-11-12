@@ -26,7 +26,12 @@ export type Anotacao = {
   atualizadoEm: string;
 };
 
+/** Plano de aula vindo do e-mail "Tarefa para {Aluno}" do Agenda Pro (gravado pelo assistente). */
+export type Plano = { aluno: string; tarefa: string; prazo: string; ultima: string; proxima: string };
+
 export type DadosAulas = {
+  /** chave = nome completo normalizado (chaveCompleta) */
+  planos: Record<string, Plano>;
   ok: boolean;
   erro?: string;
   podeEscrever: boolean;
@@ -165,6 +170,16 @@ export function mesmoAluno(a: string, b: string): boolean {
   return pa.length > 1 && pb.length > 1 ? pa.join(" ") === pb.join(" ") : true;
 }
 
+/** Plano do aluno: tenta o nome completo e, se o nome estiver só com o primeiro nome, o único plano com esse primeiro nome. */
+export function planoDoAluno(planos: Record<string, Plano>, nome: string): Plano | undefined {
+  const exato = planos[chaveCompleta(nome)];
+  if (exato) return exato;
+  const p = palavrasAluno(nome);
+  if (p.length !== 1) return undefined;
+  const iguais = Object.values(planos).filter((x) => palavrasAluno(x.aluno)[0] === p[0]);
+  return iguais.length === 1 ? iguais[0] : undefined;
+}
+
 /** Próxima aula do aluno: tenta o nome completo e, se não houver, o primeiro nome. */
 export function proximaDoAluno(proximas: Record<string, string>, nome: string): string {
   return proximas[chaveCompleta(nome)] ?? proximas[chaveAluno(nome)] ?? "";
@@ -203,6 +218,18 @@ export function diasDesde(iso: string, agora = new Date()): number {
   return Math.max(0, Math.floor((agora.getTime() - d.getTime()) / 86_400_000));
 }
 
+/** Planos de aula (registros `plano:` do assistente), por nome completo normalizado. */
+export async function listarPlanos(): Promise<Record<string, Plano>> {
+  const regs = await listarRegistros(STORES.aulas);
+  const planos: Record<string, Plano> = {};
+  for (const r of regs) {
+    if (!r.key.startsWith("plano:")) continue;
+    const aluno = txt(r.data.aluno);
+    if (aluno) planos[chaveCompleta(aluno)] = { aluno, tarefa: txt(r.data.tarefa), prazo: txt(r.data.prazo), ultima: txt(r.data.ultima_aula), proxima: txt(r.data.proxima_aula) };
+  }
+  return planos;
+}
+
 export async function listarAnotacoes(): Promise<Anotacao[]> {
   const regs = await listarRegistros(STORES.aulas);
   return regs
@@ -229,7 +256,7 @@ export async function listarAnotacoes(): Promise<Anotacao[]> {
 }
 
 export async function carregarAulas(): Promise<DadosAulas> {
-  const base: DadosAulas = { ok: false, podeEscrever: temTokenEscrita(), anotacoes: [], alunos: [], proximas: {} };
+  const base: DadosAulas = { ok: false, podeEscrever: temTokenEscrita(), anotacoes: [], alunos: [], proximas: {}, planos: {} };
 
   if (!temTokenLeitura() && process.env.NODE_ENV !== "production") {
     const ex = (o: Partial<Anotacao> & Pick<Anotacao, "id" | "aluno" | "assunto" | "criadoEm">): Anotacao => ({
@@ -296,7 +323,14 @@ export async function carregarAulas(): Promise<DadosAulas> {
     const vistos = new Map<string, string>();
     for (const n of [...doAssistente, ...usados]) if (!vistos.has(chaveCompleta(n))) vistos.set(chaveCompleta(n), n);
     const alunos = Array.from(vistos.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
-    return { ...base, ok: true, anotacoes, alunos, proximas };
+    const planos: Record<string, Plano> = {};
+    for (const r of regsAulas) {
+      if (!r.key.startsWith("plano:")) continue;
+      const aluno = txt(r.data.aluno);
+      if (!aluno) continue;
+      planos[chaveCompleta(aluno)] = { aluno, tarefa: txt(r.data.tarefa), prazo: txt(r.data.prazo), ultima: txt(r.data.ultima_aula), proxima: txt(r.data.proxima_aula) };
+    }
+    return { ...base, ok: true, anotacoes, alunos, proximas, planos };
   } catch (e) {
     return { ...base, erro: `Não consegui carregar as anotações agora. Detalhe: ${e instanceof Error ? e.message : "erro desconhecido"}` };
   }
