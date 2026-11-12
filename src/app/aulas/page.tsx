@@ -3,7 +3,9 @@ import {
   TIPOS,
   buscas,
   carregarAulas,
-  chaveAluno,
+  chaveCompleta,
+  mesmoAluno,
+  proximaDoAluno,
   diasAte,
   diasDesde,
   idYoutube,
@@ -203,14 +205,14 @@ function Cartao({ a, ativo, voltar }: { a: Anotacao; ativo: boolean; voltar: str
 function agrupar(lista: Anotacao[], proximas: Record<string, string> = {}): [string, Anotacao[]][] {
   const mapa = new Map<string, Anotacao[]>();
   for (const a of lista) {
-    const k = chaveAluno(a.aluno) || a.aluno;
+    const k = chaveCompleta(a.aluno) || a.aluno;
     mapa.set(k, [...(mapa.get(k) ?? []), a]);
   }
   return Array.from(mapa.values())
     .map((itens): [string, Anotacao[]] => [itens[0].aluno, itens])
     .sort((x, y) => {
-      const ax = proximas[chaveAluno(x[0])] ?? "";
-      const ay = proximas[chaveAluno(y[0])] ?? "";
+      const ax = proximaDoAluno(proximas, x[0]);
+      const ay = proximaDoAluno(proximas, y[0]);
       if (ax && ay) return ax < ay ? -1 : ax > ay ? 1 : 0;
       if (ax) return -1;
       if (ay) return 1;
@@ -228,12 +230,14 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
   const voltar = new URLSearchParams({ ...(filtro && { aluno: filtro }), ...(tipoFiltro && { tipo: tipoFiltro }), ...(busca && { q: busca }), ...(ordem !== "entrega" && { ordem }) }).toString();
 
   const todasPendentes = dados.anotacoes.filter((a) => a.status === "pendente");
-  const comAnotacao = Array.from(new Set(dados.anotacoes.map((a) => a.aluno).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const nomesUnicos = new Map<string, string>();
+  for (const a of dados.anotacoes) if (a.aluno && !nomesUnicos.has(chaveCompleta(a.aluno))) nomesUnicos.set(chaveCompleta(a.aluno), a.aluno);
+  const comAnotacao = Array.from(nomesUnicos.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
   const qn = semAcento(busca);
 
   const visiveis = dados.anotacoes.filter(
     (a) =>
-      (!filtro || chaveAluno(a.aluno) === chaveAluno(filtro)) &&
+      (!filtro || mesmoAluno(a.aluno, filtro)) &&
       (!tipoFiltro || a.tipo === tipoFiltro) &&
       (!qn || semAcento(`${a.aluno} ${a.assunto} ${a.observacoes} ${a.tom} ${a.posAula}`).includes(qn)),
   );
@@ -241,12 +245,12 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
   const feitas = visiveis.filter((a) => a.status === "feito").sort((a, b) => ((a.feitoEm || a.atualizadoEm) < (b.feitoEm || b.atualizadoEm) ? 1 : -1));
 
   const preparar = agrupar(todasPendentes, dados.proximas)
-    .map(([nome, itens]): [string, Anotacao[], string] => [nome, itens, dados.proximas[chaveAluno(nome)] ?? ""])
+    .map(([nome, itens]): [string, Anotacao[], string] => [nome, itens, proximaDoAluno(dados.proximas, nome)])
     .filter(([, , iso]) => iso && diasAte(iso) >= 0 && diasAte(iso) <= 7);
 
   const antigas = todasPendentes.filter((a) => diasDesde(a.criadoEm) > DIAS_ANTIGO).length;
   const altas = todasPendentes.filter((a) => a.prioridade === "alta").length;
-  const alunosComPedido = new Set(todasPendentes.map((a) => chaveAluno(a.aluno))).size;
+  const alunosComPedido = new Set(todasPendentes.map((a) => chaveCompleta(a.aluno))).size;
 
   return (
     <div className="tela-neutra">
@@ -353,12 +357,12 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                   Todos
                 </Link>
                 {comAnotacao.map((n) => {
-                  const qtd = todasPendentes.filter((a) => chaveAluno(a.aluno) === chaveAluno(n)).length;
+                  const qtd = todasPendentes.filter((a) => mesmoAluno(a.aluno, n)).length;
                   return (
                     <Link
                       key={n}
                       href={href({ aluno: n, tipo: tipoFiltro, q: busca , ordem })}
-                      className={`filtro ${chaveAluno(n) === chaveAluno(filtro) && filtro ? "ativo" : ""}`}
+                      className={`filtro ${filtro && mesmoAluno(n, filtro) ? "ativo" : ""}`}
                     >
                       {n}
                       {qtd > 0 && <span className="contagem">{qtd}</span>}
@@ -404,7 +408,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                   </ul>
                 ) : (
                 agrupar(pendentes, ordem === "entrega" ? dados.proximas : {}).map(([nome, itens]) => {
-                  const iso = dados.proximas[chaveAluno(nome)];
+                  const iso = proximaDoAluno(dados.proximas, nome);
                   return (
                   <details key={nome} className="resolvidos grupo" open>
                     <summary>

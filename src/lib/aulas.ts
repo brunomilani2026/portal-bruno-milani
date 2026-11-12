@@ -130,7 +130,42 @@ export function chaveAluno(nome: string): string {
     .toLowerCase()
     .replace(/[^a-z\s]/g, " ")
     .trim()
-    .split(/\s+/)[0] ?? "";
+    .split(/\s+/)[0]
+    ?.replace(/^wellington$/, "welington") ?? ""; // grafia do Agenda Pro e do Calendar
+}
+
+/** Palavras do nome em minúsculas, sem acento nem número: "Diego Pereira" → ["diego", "pereira"]. */
+export function palavrasAluno(nome: string): string[] {
+  return nome
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p, i) => (i === 0 && p === "wellington" ? "welington" : p));
+}
+
+/** Nome completo normalizado (nome + sobrenome), para agrupar sem confundir dois "Diego". */
+export function chaveCompleta(nome: string): string {
+  return palavrasAluno(nome).join(" ");
+}
+
+/**
+ * Mesmo aluno? Se os dois nomes têm sobrenome, precisam ser iguais por inteiro ("Diego Pereira" ≠ "Diego Dionizio Luiz").
+ * Se um deles está só com o primeiro nome (anotação antiga), casa pelo primeiro nome.
+ */
+export function mesmoAluno(a: string, b: string): boolean {
+  const pa = palavrasAluno(a);
+  const pb = palavrasAluno(b);
+  if (!pa.length || !pb.length || pa[0] !== pb[0]) return false;
+  return pa.length > 1 && pb.length > 1 ? pa.join(" ") === pb.join(" ") : true;
+}
+
+/** Próxima aula do aluno: tenta o nome completo e, se não houver, o primeiro nome. */
+export function proximaDoAluno(proximas: Record<string, string>, nome: string): string {
+  return proximas[chaveCompleta(nome)] ?? proximas[chaveAluno(nome)] ?? "";
 }
 
 /** Entrada rápida: "Iuri – Amor de Verão" vira aluno + assunto. */
@@ -227,8 +262,21 @@ export async function carregarAulas(): Promise<DadosAulas> {
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean);
+    // Anotação antiga só com o primeiro nome ("Anderson") vira o nome completo quando só existe UM aluno com esse primeiro nome
+    // na lista; com dois "Diego" não dá para adivinhar, então fica como está até o Bruno dizer qual.
+    const completos = doAssistente.filter((n) => palavrasAluno(n).length > 1);
+    const completar = (nome: string): string => {
+      const p = palavrasAluno(nome);
+      if (p.length !== 1) return nome;
+      const iguais = completos.filter((c) => palavrasAluno(c)[0] === p[0]);
+      return iguais.length === 1 ? iguais[0] : nome;
+    };
+    for (const a of anotacoes) a.aluno = completar(a.aluno);
     const usados = anotacoes.map((a) => a.aluno).filter(Boolean);
-    const alunos = Array.from(new Set([...doAssistente, ...usados])).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    // sem repetir "Diego"/"diego": entre grafias iguais vale a primeira (a lista do assistente vem antes)
+    const vistos = new Map<string, string>();
+    for (const n of [...doAssistente, ...usados]) if (!vistos.has(chaveCompleta(n))) vistos.set(chaveCompleta(n), n);
+    const alunos = Array.from(vistos.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
     return { ...base, ok: true, anotacoes, alunos, proximas };
   } catch (e) {
     return { ...base, erro: `Não consegui carregar as anotações agora. Detalhe: ${e instanceof Error ? e.message : "erro desconhecido"}` };
