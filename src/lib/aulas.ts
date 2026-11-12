@@ -125,6 +125,8 @@ export function buscas(assunto: string): { rotulo: string; href: string }[] {
 /** Primeiro nome em minúsculas e sem acento/número, para casar "Julio 16" com "Julio". */
 export function chaveAluno(nome: string): string {
   return nome
+    .replace(/^\s*aula\s*:/i, "") // título do Agenda Pro: "Aula: Diego (cavaquinho)"
+    .replace(/\(.*?\)/g, " ")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
@@ -166,6 +168,23 @@ export function mesmoAluno(a: string, b: string): boolean {
 /** Próxima aula do aluno: tenta o nome completo e, se não houver, o primeiro nome. */
 export function proximaDoAluno(proximas: Record<string, string>, nome: string): string {
   return proximas[chaveCompleta(nome)] ?? proximas[chaveAluno(nome)] ?? "";
+}
+
+/**
+ * Chave da aula vinda do Calendar. O Agenda Pro só escreve o primeiro nome no título, então os nomes repetidos
+ * são separados por regra (definida pelo Bruno em 12/11/2026): Marcos de violão = Marcos Antônio, Marcos de cavaquinho = Marcos Garcia;
+ * Diego de terça 11h = Diego Pereira, Diego de quinta 12h = Diego Dionizio Luiz.
+ */
+export function chaveDaAula(titulo: string, data: string, hora: string): string {
+  const k = chaveAluno(titulo);
+  const t = titulo.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (k === "marcos") return t.includes("violao") ? "marcos antonio" : t.includes("cavaquinho") ? "marcos garcia" : k;
+  if (k === "diego") {
+    const dia = new Date(`${data}T12:00:00-03:00`).getUTCDay(); // 2 = terça, 4 = quinta
+    if (dia === 2 && hora.startsWith("11:")) return "diego pereira";
+    if (dia === 4 && hora.startsWith("12:")) return "diego dionizio luiz";
+  }
+  return k;
 }
 
 /** Entrada rápida: "Iuri – Amor de Verão" vira aluno + assunto. */
@@ -251,7 +270,7 @@ export async function carregarAulas(): Promise<DadosAulas> {
       const iso = `${data}T${hora}:00-03:00`;
       const t = new Date(iso).getTime();
       if (Number.isNaN(t) || t < agora - 3_600_000) continue; // aula que já passou
-      const k = chaveAluno(titulo);
+      const k = chaveDaAula(titulo, data, hora);
       if (!k) continue;
       if (!daAgenda[k] || t < new Date(daAgenda[k]).getTime()) daAgenda[k] = iso;
     }
