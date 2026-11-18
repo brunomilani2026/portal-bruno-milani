@@ -342,6 +342,7 @@ export default async function AulasPage({ searchParams }: { searchParams: Promis
                           <br />
                           <span className="item-meta">
                             <strong>Próxima aula:</strong> {p.proxima}
+                            {p.preparar && <strong> — 🛠 preciso preparar antes</strong>}
                           </span>
                         </>
                       )}

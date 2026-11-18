@@ -27,7 +27,7 @@ export type Anotacao = {
 };
 
 /** Plano de aula vindo do e-mail "Tarefa para {Aluno}" do Agenda Pro (gravado pelo assistente). */
-export type Plano = { aluno: string; tarefa: string; prazo: string; ultima: string; proxima: string };
+export type Plano = { aluno: string; tarefa: string; prazo: string; ultima: string; proxima: string; /** "Preciso preparar antes" marcado no Agenda Pro: precisa planejar/escrever a aula. */ preparar: boolean };
 
 export type DadosAulas = {
   /** chave = nome completo normalizado (chaveCompleta) */
@@ -225,7 +225,7 @@ export async function listarPlanos(): Promise<Record<string, Plano>> {
   for (const r of regs) {
     if (!r.key.startsWith("plano:")) continue;
     const aluno = txt(r.data.aluno);
-    if (aluno) planos[chaveCompleta(aluno)] = { aluno, tarefa: txt(r.data.tarefa), prazo: txt(r.data.prazo), ultima: txt(r.data.ultima_aula), proxima: txt(r.data.proxima_aula) };
+    if (aluno) planos[chaveCompleta(aluno)] = { aluno, tarefa: txt(r.data.tarefa), prazo: txt(r.data.prazo), ultima: txt(r.data.ultima_aula), proxima: txt(r.data.proxima_aula), preparar: r.data.preparar === true || /^(sim|true)$/i.test(txt(r.data.preparar)) };
   }
   return planos;
 }
@@ -328,7 +328,7 @@ export async function carregarAulas(): Promise<DadosAulas> {
       if (!r.key.startsWith("plano:")) continue;
       const aluno = txt(r.data.aluno);
       if (!aluno) continue;
-      planos[chaveCompleta(aluno)] = { aluno, tarefa: txt(r.data.tarefa), prazo: txt(r.data.prazo), ultima: txt(r.data.ultima_aula), proxima: txt(r.data.proxima_aula) };
+      planos[chaveCompleta(aluno)] = { aluno, tarefa: txt(r.data.tarefa), prazo: txt(r.data.prazo), ultima: txt(r.data.ultima_aula), proxima: txt(r.data.proxima_aula), preparar: r.data.preparar === true || /^(sim|true)$/i.test(txt(r.data.preparar)) };
     }
     return { ...base, ok: true, anotacoes, alunos, proximas, planos };
   } catch (e) {
